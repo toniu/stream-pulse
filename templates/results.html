@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Results - pyAux</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="results-page">
+    <!-- Background animated equaliser -->
+    <div class="equaliser-background">
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+    </div>
+
+    <!-- Main results container -->
+    <div class="container">
+        <!-- Header with back button -->
+        <header class="header results-header">
+            <a href="/" class="back-btn">← Back to Home</a>
+            <div class="logo-container">
+                <h1 class="title">py<span class="highlight">Aux</span></h1>
+            </div>
+        </header>
+
+        <!-- Results content area -->
+        <main class="results-content" id="resultsContent">
+            <!-- Loading state (shown initially) -->
+            <div id="resultsLoading" class="loading-container">
+                <div class="loading-spinner">
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
+                </div>
+                <p class="loading-text">Loading results...</p>
+            </div>
+
+            <!-- Error state -->
+            <div id="resultsError" class="error-container" style="display: none;">
+                <div class="error-icon">⚠️</div>
+                <h2>Oops! Something went wrong</h2>
+                <p class="error-text"></p>
+                <a href="/" class="analyse-btn">Try Again</a>
+            </div>
+
+            <!-- Success state (populated by JavaScript) -->
+            <div id="resultsData" style="display: none;">
+                <!-- Playlist header -->
+                <section class="playlist-header">
+                    <h2 id="playlistName">Playlist Name</h2>
+                    <p class="track-count"><span id="trackCount">0</span> tracks analysed</p>
+                </section>
+
+                <!-- Overall rating display -->
+                <section class="overall-rating">
+                    <h3>Overall Rating</h3>
+                    <div class="rating-circle">
+                        <svg class="circle-svg" viewBox="0 0 200 200">
+                            <circle class="circle-bg" cx="100" cy="100" r="85"></circle>
+                            <circle class="circle-progress" cx="100" cy="100" r="85" id="overallCircle"></circle>
+                        </svg>
+                        <div class="rating-value">
+                            <span id="overallRating">0</span>
+                            <span class="rating-suffix">/100</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Individual ratings breakdown -->
+                <section class="ratings-breakdown">
+                    <h3>Detailed Breakdown</h3>
+                    <div class="rating-bars">
+                        <!-- Artist Diversity -->
+                        <div class="rating-item">
+                            <div class="rating-label">
+                                <span>Artist Diversity</span>
+                                <span class="rating-score" id="artistScore">0%</span>
+                            </div>
+                            <div class="rating-bar-container">
+                                <div class="rating-bar-fill" id="artistBar"></div>
+                            </div>
+                        </div>
+
+                        <!-- Genre Cohesion -->
+                        <div class="rating-item">
+                            <div class="rating-label">
+                                <span>Genre Cohesion</span>
+                                <span class="rating-score" id="genreScore">0%</span>
+                            </div>
+                            <div class="rating-bar-container">
+                                <div class="rating-bar-fill" id="genreBar"></div>
+                            </div>
+                        </div>
+
+                        <!-- Popularity Balance -->
+                        <div class="rating-item">
+                            <div class="rating-label">
+                                <span>Popularity Balance</span>
+                                <span class="rating-score" id="popularityScore">0%</span>
+                            </div>
+                            <div class="rating-bar-container">
+                                <div class="rating-bar-fill" id="popularityBar"></div>
+                            </div>
+                        </div>
+
+                        <!-- Playlist Length -->
+                        <div class="rating-item">
+                            <div class="rating-label">
+                                <span>Playlist Length</span>
+                                <span class="rating-score" id="lengthScore">0%</span>
+                            </div>
+                            <div class="rating-bar-container">
+                                <div class="rating-bar-fill" id="lengthBar"></div>
+                            </div>
+                        </div>
+
+                        <!-- Era Diversity -->
+                        <div class="rating-item">
+                            <div class="rating-label">
+                                <span>Era Diversity</span>
+                                <span class="rating-score" id="eraScore">0%</span>
+                            </div>
+                            <div class="rating-bar-container">
+                                <div class="rating-bar-fill" id="eraBar"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Popular genres section -->
+                <section class="genres-section">
+                    <h3>Popular Genres</h3>
+                    <div class="genres-list" id="genresList">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </section>
+
+                <!-- Tracks list section -->
+                <section class="tracks-section">
+                    <h3>Playlist Tracks</h3>
+                    <div class="tracks-controls">
+                        <button class="toggle-btn" id="toggleTracks">Show All Tracks</button>
+                    </div>
+                    <div class="tracks-list" id="tracksList" style="display: none;">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </section>
+
+                <!-- Recommendations section -->
+                <section class="recommendations-section">
+                    <h3>Recommended Tracks</h3>
+                    <p class="section-subtitle">Add these tracks to improve your playlist rating</p>
+                    <div class="recommendations-list" id="recommendationsList">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </section>
+
+                <!-- Action buttons -->
+                <section class="actions">
+                    <a href="/" class="analyse-btn">Analyse Another Playlist</a>
+                </section>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Powered by Spotify API &copy; 2026 pyAux</p>
+        </footer>
+    </div>
+
+    <!-- JavaScript for results rendering -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

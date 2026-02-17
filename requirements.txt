@@ -1,0 +1,15 @@
+# pyAux - Spotify Playlist Analyser
+# Python Dependencies
+
+# Flask web framework
+Flask==3.0.0
+Werkzeug==3.0.1
+
+# Spotify API client
+spotipy==2.23.0
+
+# Environment variables management
+python-dotenv==1.0.0
+
+# Optional: For production deployment
+gunicorn==21.2.0
