@@ -7,6 +7,33 @@ echo "🎵 pyAux - Spotify Playlist Analyser"
 echo "===================================="
 echo ""
 
+# Function to clean up port 5001
+clean_port() {
+    local PORT=5001
+    echo "🧹 Checking port $PORT..."
+    
+    # Check if port is in use
+    if lsof -ti:$PORT > /dev/null 2>&1; then
+        echo "⚠️  Port $PORT is in use. Cleaning up..."
+        lsof -ti:$PORT | xargs kill -9 2>/dev/null
+        sleep 1
+        
+        # Verify port is now free
+        if lsof -ti:$PORT > /dev/null 2>&1; then
+            echo "❌ Failed to free port $PORT. Please manually stop the process."
+            exit 1
+        else
+            echo "✅ Port $PORT is now available"
+        fi
+    else
+        echo "✅ Port $PORT is available"
+    fi
+    echo ""
+}
+
+# Clean port before starting
+clean_port
+
 # Check if .env file exists
 if [ ! -f .env ]; then
     echo "⚠️  No .env file found!"

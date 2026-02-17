@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - pyAux</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="error-container">
+            <h1>Oops! Something went wrong</h1>
+            <div class="error-icon">⚠️</div>
+            <p class="error-text">{{ error.description if error else "An unexpected error occurred" }}</p>
+            <a href="{{ url_for('index') }}" class="btn-primary">Go Back Home</a>
+        </div>
+    </div>
+</body>
+</html>
