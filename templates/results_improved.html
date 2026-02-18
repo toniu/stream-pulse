@@ -10,6 +10,11 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="alternate icon" href="{{ url_for('static', filename='favicon.ico') }}">
     
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <title>Analysis Results - pyAux</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <!-- Chart.js removed - charts not currently displayed -->
@@ -80,7 +85,10 @@
                 <section class="playlist-hero">
                     <img id="playlistCover" class="playlist-cover" alt="Playlist cover" loading="eager">
                     <div class="playlist-info">
-                        <span class="playlist-type">Spotify Playlist</span>
+                        <div class="playlist-badges">
+                            <span class="playlist-type">Spotify Playlist</span>
+                            <span class="playlist-purpose-badge" id="purposeBadge"></span>
+                        </div>
                         <h2 id="playlistName">Playlist Name</h2>
                         <div class="playlist-meta">
                             <span id="playlistOwner">by User</span>
@@ -299,6 +307,26 @@
                             </div>
                             <div class="card-trend" id="eraTrend"></div>
                         </div>
+
+                        <div class="rating-card" data-rating="flow">
+                            <div class="card-header">
+                                <div class="card-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M3 3v18h18"></path>
+                                        <path d="M18 17l-4-10-4 10-2-6"></path>
+                                    </svg>
+                                </div>
+                                <div class="card-score" id="flowRating">0</div>
+                            </div>
+                            <h3>Flow & Consistency</h3>
+                            <p class="card-description" id="flowDescription">Loading...</p>
+                            <div class="card-progress">
+                                <div class="progress-bar-mini">
+                                    <div class="progress-fill-mini" id="flowProgress"></div>
+                                </div>
+                            </div>
+                            <div class="card-trend" id="flowTrend"></div>
+                        </div>
                     </div>
 
                     <!-- Improvement Suggestions -->
@@ -331,13 +359,23 @@
                                 </svg>
                                 <input type="search" id="trackSearch" placeholder="Search tracks..." aria-label="Search tracks">
                             </div>
-                            <select id="trackSort" aria-label="Sort tracks">
-                                <option value="default">Default Order</option>
-                                <option value="name">By Name</option>
-                                <option value="artist">By Artist</option>
-                                <option value="popularity">By Popularity</option>
-                                <option value="duration">By Duration</option>
-                            </select>
+                            <div class="sort-controls">
+                                <select id="trackSort" aria-label="Sort tracks">
+                                    <option value="default">Default Order</option>
+                                    <option value="name">By Name</option>
+                                    <option value="artist">By Artist</option>
+                                    <option value="popularity">By Popularity</option>
+                                    <option value="duration">By Duration</option>
+                                </select>
+                                <button id="sortOrderBtn" class="sort-order-btn" aria-label="Toggle sort order" title="Toggle ascending/descending">
+                                    <svg class="sort-icon sort-icon-asc" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M12 19V5M5 12l7-7 7 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    <svg class="sort-icon sort-icon-desc" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" hidden>
+                                        <path d="M12 5v14M5 12l7 7 7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     

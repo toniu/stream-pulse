@@ -67,6 +67,19 @@ class SpotifyService:
         """
         return bool(re.match(SpotifyService.PLAYLIST_URL_REGEX, url))
     
+    def is_valid_playlist_url(self, url: str) -> bool:
+        """
+        Validate if the given URL is a valid Spotify playlist URL.
+
+        Args:
+        url (str): The Spotify playlist URL to validate.
+
+        Returns:
+        bool: True if the URL is valid, False otherwise.
+        """
+        pattern = re.compile(self.PLAYLIST_URL_REGEX)
+        return bool(pattern.match(url))
+    
     def fetch_playlist_data(self, playlist_url: str) -> Tuple[str, Optional[str], List[Dict], Set[str]]:
         """
         Fetch playlist tracks and metadata
@@ -88,6 +101,7 @@ class SpotifyService:
             
             # Fetch playlist metadata
             playlist = self.client.playlist(playlist_id)
+            logger.debug(f"Spotify API response: {playlist}")
             playlist_name = playlist['name']
             playlist_image = playlist['images'][0]['url'] if playlist.get('images') else None
             
@@ -121,7 +135,9 @@ class SpotifyService:
         except SpotifyException as e:
             logger.error(f"Spotify API error: {str(e)}")
             if e.http_status == 404:
+                logger.debug(f"Playlist tracks response: {results}")
                 raise ValueError("Playlist not found or is private")
+            logger.error(f"Spotify API error details: {e.response.json()}")
             raise
         except Exception as e:
             logger.error(f"Error fetching playlist data: {str(e)}")
@@ -205,6 +221,63 @@ class SpotifyService:
             logger.error(f"Error batch fetching genres: {str(e)}")
             # Fallback to empty genres if batch fails
             return {aid: [] for aid in artist_ids}
+    
+    def batch_fetch_audio_features(self, track_info: List[Dict]) -> Dict[str, Dict]:
+        """
+        Batch fetch audio features for tracks
+        
+        Args:
+            track_info: List of track dictionaries with 'spotify_url'
+            
+        Returns:
+            Dictionary mapping track spotify_url to audio features
+        """
+        audio_features_map = {}
+        
+        try:
+            # Extract track IDs from spotify URLs
+            track_ids = []
+            url_to_id_map = {}
+            for track in track_info:
+                spotify_url = track.get('spotify_url')
+                if spotify_url:
+                    track_id = spotify_url.split('/')[-1].split('?')[0]
+                    track_ids.append(track_id)
+                    url_to_id_map[track_id] = spotify_url
+            
+            if not track_ids:
+                logger.warning("No track IDs available for audio features")
+                return {}
+            
+            # Fetch in batches (Spotify API limit: 100 tracks per request)
+            batch_size = 100
+            for i in range(0, len(track_ids), batch_size):
+                batch = track_ids[i:i + batch_size]
+                features_batch = self.client.audio_features(batch)
+                
+                for features in features_batch:
+                    if features:
+                        track_id = features['id']
+                        spotify_url = url_to_id_map.get(track_id)
+                        if spotify_url:
+                            audio_features_map[spotify_url] = {
+                                'energy': features.get('energy', 0.5),
+                                'valence': features.get('valence', 0.5),
+                                'danceability': features.get('danceability', 0.5),
+                                'tempo': features.get('tempo', 120),
+                                'loudness': features.get('loudness', -10),
+                                'acousticness': features.get('acousticness', 0.5),
+                                'instrumentalness': features.get('instrumentalness', 0.0),
+                                'speechiness': features.get('speechiness', 0.1)
+                            }
+            
+            logger.info(f"Fetched audio features for {len(audio_features_map)} tracks")
+            return audio_features_map
+            
+        except Exception as e:
+            logger.error(f"Error batch fetching audio features: {str(e)}")
+            # Return empty dict on failure
+            return {}
     
     def get_recommendations(self, track_info: List[Dict], genre_cache: Dict, limit: int = 10) -> List[Dict]:
         """

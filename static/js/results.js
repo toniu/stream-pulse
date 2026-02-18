@@ -503,6 +503,11 @@ if (document.getElementById('results-content')) {
                 if (roundedScore >= 60) return 'Good era representation';
                 return 'Concentrated in specific era';
             
+            case 'flow':
+                if (roundedScore >= 80) return 'Excellent flow and transitions';
+                if (roundedScore >= 60) return 'Good flow with minor disruptions';
+                return 'Consider improving transitions between tracks';
+            
             default:
                 return 'Analysing...';
         }
@@ -623,10 +628,59 @@ if (document.getElementById('results-content')) {
         }
         
         // Setup sort
+        let sortDirection = 'asc'; // Default to ascending
         const sortSelect = document.getElementById('trackSort');
+        const sortOrderBtn = document.getElementById('sortOrderBtn');
+        
+        // Sort order toggle
+        if (sortOrderBtn) {
+            sortOrderBtn.addEventListener('click', () => {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                
+                // Toggle button state
+                sortOrderBtn.classList.toggle('descending', sortDirection === 'desc');
+                
+                // Toggle icon visibility - only show ONE arrow at a time
+                const ascIcon = sortOrderBtn.querySelector('.sort-icon-asc');
+                const descIcon = sortOrderBtn.querySelector('.sort-icon-desc');
+                if (ascIcon && descIcon) {
+                    if (sortDirection === 'asc') {
+                        ascIcon.removeAttribute('hidden');
+                        descIcon.setAttribute('hidden', '');
+                    } else {
+                        ascIcon.setAttribute('hidden', '');
+                        descIcon.removeAttribute('hidden');
+                    }
+                }
+                
+                // Re-sort tracks
+                const currentSort = sortSelect ? sortSelect.value : 'default';
+                const sortedTracks = sortTracks([...tracks], currentSort, sortDirection);
+                renderTracks(sortedTracks);
+            });
+        }
+        
         if (sortSelect) {
             sortSelect.addEventListener('change', (e) => {
-                const sortedTracks = sortTracks([...tracks], e.target.value);
+                // Hide button for default sort, show for others
+                if (sortOrderBtn) {
+                    if (e.target.value === 'default') {
+                        sortOrderBtn.style.display = 'none';
+                    } else {
+                        sortOrderBtn.style.display = 'flex';
+                    }
+                    // Reset to ascending when changing sort type
+                    sortDirection = 'asc';
+                    sortOrderBtn.classList.remove('descending');
+                    const ascIcon = sortOrderBtn.querySelector('.sort-icon-asc');
+                    const descIcon = sortOrderBtn.querySelector('.sort-icon-desc');
+                    if (ascIcon && descIcon) {
+                        ascIcon.removeAttribute('hidden');
+                        descIcon.setAttribute('hidden', '');
+                    }
+                }
+                
+                const sortedTracks = sortTracks([...tracks], e.target.value, sortDirection);
                 renderTracks(sortedTracks);
             });
         }
@@ -675,16 +729,18 @@ if (document.getElementById('results-content')) {
     /**
      * Sort tracks
      */
-    function sortTracks(tracks, sortBy) {
+    function sortTracks(tracks, sortBy, direction = 'asc') {
+        const multiplier = direction === 'asc' ? 1 : -1;
+        
         switch (sortBy) {
             case 'name':
-                return tracks.sort((a, b) => a.name.localeCompare(b.name));
+                return tracks.sort((a, b) => multiplier * a.name.localeCompare(b.name));
             case 'artist':
-                return tracks.sort((a, b) => a.artists[0].localeCompare(b.artists[0]));
+                return tracks.sort((a, b) => multiplier * a.artists[0].localeCompare(b.artists[0]));
             case 'popularity':
-                return tracks.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+                return tracks.sort((a, b) => multiplier * ((b.popularity || 0) - (a.popularity || 0)));
             case 'duration':
-                return tracks.sort((a, b) => b.duration_ms - a.duration_ms);
+                return tracks.sort((a, b) => multiplier * (b.duration_ms - a.duration_ms));
             default:
                 return tracks;
         }

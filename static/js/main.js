@@ -286,6 +286,10 @@ if (document.getElementById('analyseForm')) {
         hideElement(document.getElementById('successMessage'));
         
         try {
+            // Get playlist purpose
+            const purposeSelect = document.getElementById('playlistPurpose');
+            const purpose = purposeSelect ? purposeSelect.value : 'general';
+            
             // Send request to Flask backend
             const response = await fetch('/analyse', {
                 method: 'POST',
@@ -293,7 +297,8 @@ if (document.getElementById('analyseForm')) {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    playlist_url: playlistUrl
+                    playlist_url: playlistUrl,
+                    purpose: purpose
                 })
             });
             

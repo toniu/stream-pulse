@@ -24,6 +24,8 @@
     
     <!-- Preconnect to external domains -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="preconnect" href="https://i.scdn.co">
     
     <!-- PWA Manifest -->
@@ -94,6 +96,27 @@
                             <line x1="12" y1="17" x2="12.01" y2="17"></line>
                         </svg>
                         URL format: https://open.spotify.com/playlist/...
+                    </div>
+
+                    <!-- Playlist Purpose Selection -->
+                    <div class="purpose-selector">
+                        <label for="playlistPurpose" class="purpose-label">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="vertical-align: middle; margin-right: 8px;">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            What's this playlist for?
+                        </label>
+                        <select id="playlistPurpose" name="purpose" aria-label="Select playlist purpose">
+                            <option value="general" selected>General Listening</option>
+                            <option value="party">Party / Social</option>
+                            <option value="workout">Workout / Exercise</option>
+                            <option value="focus">Focus / Study</option>
+                            <option value="discovery">Discovery / Exploration</option>
+                            <option value="background">Background / Ambient</option>
+                            <option value="roadtrip">Road Trip / Travel</option>
+                        </select>
+                        <p class="purpose-help">This helps us optimize the analysis for your specific use case</p>
                     </div>
 
                     <!-- Submit button with hover effect -->

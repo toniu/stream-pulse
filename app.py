@@ -130,8 +130,23 @@ def register_routes(app, spotify_service):
                 raise ValueError("Request body must be JSON")
             
             playlist_url = data.get('playlist_url', '').strip()
+            purpose = data.get('purpose', 'general').strip()
+            
+            logger.debug(f"Received request to analyze playlist with URL: {playlist_url} and purpose: {purpose}")
+
             if not playlist_url:
-                raise ValueError("playlist_url is required")
+                logger.warning("No playlist URL provided in the request")
+                raise ValueError("Playlist URL is required")
+
+            if not spotify_service.is_valid_playlist_url(playlist_url):
+                logger.warning(f"Invalid playlist URL provided: {playlist_url}")
+                raise ValueError("Invalid playlist URL")
+            
+            # Get playlist purpose (default to 'general')
+            valid_purposes = ['general', 'party', 'workout', 'focus', 'discovery', 'background', 'roadtrip']
+            if purpose not in valid_purposes:
+                logger.warning(f"Invalid purpose '{purpose}', defaulting to 'general'")
+                purpose = 'general'
             
             # Validate URL format
             if not spotify_service.validate_playlist_url(playlist_url):
@@ -157,8 +172,18 @@ def register_routes(app, spotify_service):
             logger.debug(f"Fetching genres for {len(artist_ids)} artists")
             genre_cache = spotify_service.batch_fetch_artist_genres(artist_ids)
             
-            # Calculate ratings
-            ratings = AnalysisService.calculate_ratings(track_info, genre_cache)
+            # Fetch audio features for flow analysis
+            logger.debug(f"Fetching audio features for {len(track_info)} tracks")
+            audio_features = spotify_service.batch_fetch_audio_features(track_info)
+            
+            # Attach audio features to track info
+            for track in track_info:
+                spotify_url = track.get('spotify_url')
+                if spotify_url and spotify_url in audio_features:
+                    track['audio_features'] = audio_features[spotify_url]
+            
+            # Calculate ratings with context awareness
+            ratings = AnalysisService.calculate_ratings(track_info, genre_cache, purpose)
             
             # Get popular genres
             popular_genres = AnalysisService.get_popular_genres(track_info, genre_cache)
@@ -172,6 +197,7 @@ def register_routes(app, spotify_service):
                 'playlist_name': playlist_name,
                 'playlist_image': playlist_image,
                 'track_count': len(track_info),
+                'purpose': purpose,
                 'tracks': track_info,
                 'ratings': ratings,
                 'popular_genres': popular_genres,
