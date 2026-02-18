@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Your Spotify playlist analysis results with detailed insights and recommendations">
+    <meta name="theme-color" content="#1DB954">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="alternate icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    
+    <title>Analysis Results - pyAux</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Chart.js removed - charts not currently displayed -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script> -->
+</head>
+<body class="results-page">
+    <!-- Skip link -->
+    <a href="#results-content" class="skip-link">Skip to results</a>
+    
+    <!-- Background animated equalizer -->
+    <div class="equaliser-background" aria-hidden="true">
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+    </div>
+
+    <!-- Main results container -->
+    <div class="container">
+        <!-- Header with back button and actions -->
+        <header class="header results-header">
+            <div class="header-nav">
+                <a href="/" class="back-btn" aria-label="Back to home">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    Back
+                </a>
+                <div class="logo-container">
+                    <h1 class="title">py<span class="highlight">Aux</span></h1>
+                </div>
+            </div>
+        </header>
+
+        <!-- Results content area -->
+        <main id="results-content" class="results-content">
+            <!-- Loading state -->
+            <div id="resultsLoading" class="loading-container" role="status" aria-live="polite">
+                <div class="loading-spinner">
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
+                </div>
+                <p class="loading-text">Loading your results...</p>
+            </div>
+
+            <!-- Error state -->
+            <div id="resultsError" class="error-container" style="display: none;" role="alert">
+                <div class="error-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--error-red)" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                </div>
+                <h2>Oops! Something went wrong</h2>
+                <p class="error-text" id="errorText">Unable to load results</p>
+                <button class="analyse-btn" onclick="window.location.href='/'">Try Again</button>
+            </div>
+
+            <!-- Success state -->
+            <div id="resultsData" style="display: none;">
+                <!-- Playlist Hero Section -->
+                <section class="playlist-hero">
+                    <img id="playlistCover" class="playlist-cover" alt="Playlist cover" loading="eager">
+                    <div class="playlist-info">
+                        <span class="playlist-type">Spotify Playlist</span>
+                        <h2 id="playlistName">Playlist Name</h2>
+                        <div class="playlist-meta">
+                            <span id="playlistOwner">by User</span>
+                            <span aria-hidden="true">•</span>
+                            <span id="trackCount">0 tracks</span>
+                            <span aria-hidden="true">•</span>
+                            <span id="playlistDuration">0h 0m</span>
+                        </div>
+                        
+                        <!-- Overall Rating Badge -->
+                        <div class="rating-badge-large">
+                            <div class="badge-score" id="overallScoreBadge">0</div>
+                            <div class="badge-label">Overall Score</div>
+                            <div class="badge-rank" id="ratingRank">Good</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Quick Stats Bar -->
+                <section class="quick-stats" aria-label="Quick statistics">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="artistCount">0</div>
+                            <div class="stat-label">Artists</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M9 18V5l12-2v13"></path>
+                                <circle cx="6" cy="18" r="3"></circle>
+                                <circle cx="18" cy="16" r="3"></circle>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="genreCount">0</div>
+                            <div class="stat-label">Genres</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="avgDuration">0:00</div>
+                            <div class="stat-label">Avg Track</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="eraSpan">2020s</div>
+                            <div class="stat-label">Main Era</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Tabbed Navigation -->
+                <nav class="results-tabs" role="tablist">
+                    <button class="tab active" role="tab" aria-selected="true" aria-controls="overview-panel" id="overview-tab" onclick="switchTab('overview')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                        Overview
+                    </button>
+                    <button class="tab" role="tab" aria-selected="false" aria-controls="tracks-panel" id="tracks-tab" onclick="switchTab('tracks')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                            <path d="M9 18V5l12-2v13M9 18l-7 0M9 18l0 0"></path>
+                            <circle cx="6" cy="18" r="3"></circle>
+                            <circle cx="18" cy="16" r="3"></circle>
+                        </svg>
+                        Tracks
+                    </button>
+                    <button class="tab" role="tab" aria-selected="false" aria-controls="recommendations-panel" id="recommendations-tab" onclick="switchTab('recommendations')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        Recommendations
+                    </button>
+                    <button class="tab" role="tab" aria-selected="false" aria-controls="insights-panel" id="insights-tab" onclick="switchTab('insights')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                        Insights
+                    </button>
+                </nav>
+
+                <!-- Tab Panels -->
+                
+                <!-- Overview Panel -->
+                <div id="overview-panel" class="tab-panel active" role="tabpanel" aria-labelledby="overview-tab">
+                    <!-- Rating Cards Grid -->
+                    <div class="rating-cards">
+                        <div class="rating-card" data-rating="artist">
+                            <div class="card-header">
+                                <div class="card-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="9" cy="7" r="4"></circle>
+                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                    </svg>
+                                </div>
+                                <div class="card-score" id="artistRating">0</div>
+                            </div>
+                            <h3>Artist Diversity</h3>
+                            <p class="card-description" id="artistDescription">Loading...</p>
+                            <div class="card-progress">
+                                <div class="progress-bar-mini">
+                                    <div class="progress-fill-mini" id="artistProgress"></div>
+                                </div>
+                            </div>
+                            <div class="card-trend" id="artistTrend"></div>
+                        </div>
+
+                        <div class="rating-card" data-rating="genre">
+                            <div class="card-header">
+                                <div class="card-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M9 18V5l12-2v13"></path>
+                                        <circle cx="6" cy="18" r="3"></circle>
+                                        <circle cx="18" cy="16" r="3"></circle>
+                                    </svg>
+                                </div>
+                                <div class="card-score" id="genreRating">0</div>
+                            </div>
+                            <h3>Genre Cohesion</h3>
+                            <p class="card-description" id="genreDescription">Loading...</p>
+                            <div class="card-progress">
+                                <div class="progress-bar-mini">
+                                    <div class="progress-fill-mini" id="genreProgress"></div>
+                                </div>
+                            </div>
+                            <div class="card-trend" id="genreTrend"></div>
+                        </div>
+
+                        <div class="rating-card" data-rating="popularity">
+                            <div class="card-header">
+                                <div class="card-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                    </svg>
+                                </div>
+                                <div class="card-score" id="popularityRating">0</div>
+                            </div>
+                            <h3>Popularity Balance</h3>
+                            <p class="card-description" id="popularityDescription">Loading...</p>
+                            <div class="card-progress">
+                                <div class="progress-bar-mini">
+                                    <div class="progress-fill-mini" id="popularityProgress"></div>
+                                </div>
+                            </div>
+                            <div class="card-trend" id="popularityTrend"></div>
+                        </div>
+
+                        <div class="rating-card" data-rating="length">
+                            <div class="card-header">
+                                <div class="card-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                </div>
+                                <div class="card-score" id="lengthRating">0</div>
+                            </div>
+                            <h3>Playlist Length</h3>
+                            <p class="card-description" id="lengthDescription">Loading...</p>
+                            <div class="card-progress">
+                                <div class="progress-bar-mini">
+                                    <div class="progress-fill-mini" id="lengthProgress"></div>
+                                </div>
+                            </div>
+                            <div class="card-trend" id="lengthTrend"></div>
+                        </div>
+
+                        <div class="rating-card" data-rating="era">
+                            <div class="card-header">
+                                <div class="card-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                                    </svg>
+                                </div>
+                                <div class="card-score" id="eraRating">0</div>
+                            </div>
+                            <h3>Era Diversity</h3>
+                            <p class="card-description" id="eraDescription">Loading...</p>
+                            <div class="card-progress">
+                                <div class="progress-bar-mini">
+                                    <div class="progress-fill-mini" id="eraProgress"></div>
+                                </div>
+                            </div>
+                            <div class="card-trend" id="eraTrend"></div>
+                        </div>
+                    </div>
+
+                    <!-- Improvement Suggestions -->
+                    <div class="improvement-section">
+                        <h3>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="vertical-align: text-bottom; display: inline-block; stroke-width: 2;">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="16 12 12 8 8 12"></polyline>
+                                <line x1="12" y1="16" x2="12" y2="8"></line>
+                            </svg>
+                            How to Improve Your Score
+                        </h3>
+                        <p class="section-subtitle">Here's what you can do to reach a higher rating</p>
+                        <div id="suggestionsList" class="suggestions-list">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Tracks Panel -->
+                <div id="tracks-panel" class="tab-panel" role="tabpanel" aria-labelledby="tracks-tab" hidden>
+                    <div class="panel-header">
+                        <h3>All Tracks</h3>
+                        <div class="panel-controls">
+                            <div class="search-box">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <path d="m21 21-4.35-4.35"></path>
+                                </svg>
+                                <input type="search" id="trackSearch" placeholder="Search tracks..." aria-label="Search tracks">
+                            </div>
+                            <select id="trackSort" aria-label="Sort tracks">
+                                <option value="default">Default Order</option>
+                                <option value="name">By Name</option>
+                                <option value="artist">By Artist</option>
+                                <option value="popularity">By Popularity</option>
+                                <option value="duration">By Duration</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="tracks-list" id="tracksList" role="list">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Recommendations Panel -->
+                <div id="recommendations-panel" class="tab-panel" role="tabpanel" aria-labelledby="recommendations-tab" hidden>
+                    <div class="panel-header">
+                        <h3>Recommended Tracks</h3>
+                        <p class="section-subtitle">Add these to enhance your playlist</p>
+                    </div>
+                    
+                    <div class="recommendations-list" id="recommendationsList" role="list">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    
+                    <div class="empty-state" id="emptyRecommendations" style="display: none;">
+                        <div class="empty-icon">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                                <path d="M9 18V5l12-2v13"></path>
+                                <circle cx="6" cy="18" r="3"></circle>
+                                <circle cx="18" cy="16" r="3"></circle>
+                            </svg>
+                        </div>
+                        <h3>No recommendations available</h3>
+                        <p>Your playlist is already well-optimized!</p>
+                    </div>
+                </div>
+
+                <!-- Insights Panel -->
+                <div id="insights-panel" class="tab-panel" role="tabpanel" aria-labelledby="insights-tab" hidden>
+                    <div class="insights-grid">
+                        <div class="insight-card">
+                            <h3>🎨 Playlist Personality</h3>
+                            <div class="personality-tags" id="personalityTags">
+                                <!-- Tags populated by JS -->
+                            </div>
+                            <p class="insight-text" id="personalityText"></p>
+                        </div>
+                        
+                        <div class="insight-card">
+                            <h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="vertical-align: text-bottom; display: inline-block; stroke-width: 2;">
+                                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                                </svg>
+                                Key Statistics
+                            </h3>
+                            <div class="stats-grid" id="keyStats">
+                                <!-- Stats populated by JS -->
+                            </div>
+                        </div>
+                        
+                        <div class="insight-card">
+                            <h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="vertical-align: text-bottom; display: inline-block; stroke-width: 2;">
+                                    <circle cx="12" cy="8" r="7"></circle>
+                                    <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+                                </svg>
+                                Highlights
+                            </h3>
+                            <div class="highlights-list" id="highlightsList">
+                                <!-- Highlights populated by JS -->
+                            </div>
+                        </div>
+                        
+                        <div class="insight-card">
+                            <h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="vertical-align: text-bottom; display: inline-block; stroke-width: 2;">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                                Watch Out For
+                            </h3>
+                            <div class="warnings-list" id="warningsList">
+                                <!-- Warnings populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <section class="actions">
+                    <button class="analyse-btn primary" onclick="window.location.href='/'">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path>
+                        </svg>
+                        Analyse Another Playlist
+                    </button>
+                </section>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Powered by Spotify Web API &copy; 2026 pyAux</p>
+        </footer>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- YouTube Mini Player -->
+    <div id="youtubeMiniPlayer" class="youtube-mini-player" hidden>
+        <div class="mini-player-header">
+            <span id="miniPlayerTitle" class="mini-player-title">Now Playing</span>
+            <button class="mini-player-close" onclick="closeYouTubePlayer()" aria-label="Close player">×</button>
+        </div>
+        <div id="youtubePlayerContainer" class="youtube-player-container">
+            <!-- YouTube iframe will be injected here -->
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/results.js') }}"></script>
+</body>
+</html>

@@ -1,89 +1,259 @@
 /**
- * pyAux - Spotify Playlist Analyser
- * Main JavaScript file for handling user interactions and API calls
+ * pyAux - Improved Spotify Playlist Analyser
+ * Enhanced JavaScript with better error handling and features
+ * Version: 2.0.0
  */
+
+// ==================== CONSTANTS ====================
+const ERROR_MESSAGES = {
+    INVALID_URL: {
+        title: 'Invalid Playlist URL',
+        message: 'Please enter a valid Spotify playlist URL',
+        icon: '🔗'
+    },
+    PRIVATE_PLAYLIST: {
+        title: 'Private Playlist',
+        message: 'This playlist is private. Please make it public or use a different playlist.',
+        icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--warning-yellow)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>'
+    },
+    NOT_FOUND: {
+        title: 'Playlist Not Found',
+        message: 'We couldn\'t find this playlist. Please check the URL and try again.',
+        icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--error-red)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>'
+    },
+    RATE_LIMIT: {
+        title: 'Too Many Requests',
+        message: 'Please wait a moment before analysing another playlist.',
+        icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--warning-yellow)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>'
+    },
+    NETWORK_ERROR: {
+        title: 'Connection Error',
+        message: 'Unable to connect. Please check your internet connection and try again.',
+        icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--error-red)" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>'
+    },
+    SERVER_ERROR: {
+        title: 'Server Error',
+        message: 'Something went wrong on our end. Please try again in a moment.',
+        icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--warning-yellow)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
+    },
+    GENERIC: {
+        title: 'Error',
+        message: 'Something went wrong. Please try again.',
+        icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--error-red)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>'
+    }
+};
+
+const LOADING_MESSAGES = [
+    'Fetching track data...',
+    'Analysing artists...',
+    'Calculating diversity...',
+    'Evaluating genres...',
+    'Computing ratings...',
+    'Generating recommendations...',
+    'Finalising analysis...'
+];
 
 // ==================== UTILITY FUNCTIONS ====================
 
 /**
- * Show an element with fade-in animation
- * @param {HTMLElement} element - The element to show
+ * Debounce function to limit rate of function calls
+ */
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+/**
+ * Show an element with animation
  */
 function showElement(element) {
+    if (!element) return;
     element.style.display = 'flex';
     element.classList.add('show');
+    element.setAttribute('aria-hidden', 'false');
 }
 
 /**
  * Hide an element
- * @param {HTMLElement} element - The element to hide
  */
 function hideElement(element) {
+    if (!element) return;
     element.style.display = 'none';
     element.classList.remove('show');
+    element.setAttribute('aria-hidden', 'true');
 }
 
 /**
- * Show error message to user
- * @param {string} message - Error message to display
+ * Show toast notification
  */
-function showError(message) {
+function showToast(message, duration = 3000) {
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+    
+    toast.textContent = message;
+    toast.classList.add('show');
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, duration);
+}
+
+/**
+ * Enhanced error display with better UX
+ */
+function showError(message, errorType = 'GENERIC') {
     const errorElement = document.getElementById('errorMessage');
-    if (errorElement) {
-        errorElement.textContent = message;
-        errorElement.classList.add('show');
-        
-        // Auto-hide after 5 seconds
-        setTimeout(() => {
-            errorElement.classList.remove('show');
-        }, 5000);
+    if (!errorElement) return;
+    
+    const error = ERROR_MESSAGES[errorType] || ERROR_MESSAGES.GENERIC;
+    
+    errorElement.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 1.5rem;">${error.icon}</span>
+            <div style="flex: 1;">
+                <strong style="display: block; margin-bottom: 4px;">${error.title}</strong>
+                <span>${message || error.message}</span>
+            </div>
+        </div>
+    `;
+    errorElement.classList.add('show');
+    errorElement.setAttribute('role', 'alert');
+    
+    // Auto-hide after 7 seconds
+    setTimeout(() => {
+        errorElement.classList.remove('show');
+    }, 7000);
+}
+
+/**
+ * Show success message
+ */
+function showSuccess(message) {
+    const successElement = document.getElementById('successMessage');
+    if (!successElement) return;
+    
+    successElement.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            <span>${message}</span>
+        </div>
+    `;
+    successElement.classList.add('show');
+    
+    setTimeout(() => {
+        successElement.classList.remove('show');
+    }, 5000);
+}
+
+/**
+ * Validate Spotify playlist URL
+ */
+function validatePlaylistUrl(url) {
+    // Spotify playlist URL patterns
+    const patterns = [
+        /^https?:\/\/open\.spotify\.com\/playlist\/([a-zA-Z0-9]+)/,
+        /^spotify:playlist:([a-zA-Z0-9]+)/
+    ];
+    
+    return patterns.some(pattern => pattern.test(url));
+}
+
+/**
+ * Extract playlist ID from URL
+ */
+function extractPlaylistId(url) {
+    const match = url.match(/playlist[\/:]([a-zA-Z0-9]+)/);
+    return match ? match[1] : null;
+}
+
+/**
+ * Update loading progress
+ */
+let loadingMessageIndex = 0;
+let loadingInterval;
+
+function startLoadingProgress() {
+    loadingMessageIndex = 0;
+    const statusElement = document.getElementById('loadingStatus');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    
+    if (!statusElement || !progressFill || !progressText) return;
+    
+    // Update message every 2 seconds
+    loadingInterval = setInterval(() => {
+        if (loadingMessageIndex < LOADING_MESSAGES.length) {
+            statusElement.textContent = LOADING_MESSAGES[loadingMessageIndex];
+            const progress = ((loadingMessageIndex + 1) / LOADING_MESSAGES.length) * 100;
+            progressFill.style.width = `${progress}%`;
+            progressText.textContent = `${Math.round(progress)}%`;
+            loadingMessageIndex++;
+        } else {
+            clearInterval(loadingInterval);
+        }
+    }, 2000);
+}
+
+function stopLoadingProgress() {
+    if (loadingInterval) {
+        clearInterval(loadingInterval);
     }
 }
 
 /**
- * Animate a rating bar to a specific percentage
- * @param {string} barId - ID of the bar element
- * @param {number} percentage - Target percentage (0-100)
- * @param {number} delay - Animation delay in milliseconds
+ * Escape HTML to prevent XSS
  */
-function animateBar(barId, percentage, delay = 0) {
-    const bar = document.getElementById(barId);
-    if (bar) {
-        setTimeout(() => {
-            bar.style.width = percentage + '%';
-        }, delay);
-    }
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 /**
- * Animate the circular progress indicator
- * @param {number} percentage - Target percentage (0-100)
+ * Format duration from milliseconds to mm:ss
  */
-function animateCircle(percentage) {
-    const circle = document.getElementById('overallCircle');
-    if (circle) {
-        // Calculate stroke-dashoffset based on percentage
-        // Circle circumference = 2 * π * radius = 2 * π * 85 ≈ 534
-        const circumference = 534;
-        const offset = circumference - (percentage / 100) * circumference;
-        
-        setTimeout(() => {
-            circle.style.strokeDashoffset = offset;
-        }, 300);
-    }
+function formatDuration(ms) {
+    const minutes = Math.floor(ms / 60000);
+    const seconds = Math.floor((ms % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
-// ==================== HOME PAGE (index.html) ====================
+// ==================== HOME PAGE ====================
 
-// Check if we're on the home page
 if (document.getElementById('analyseForm')) {
     const form = document.getElementById('analyseForm');
     const urlInput = document.getElementById('playlistUrl');
     const loadingAnimation = document.getElementById('loadingAnimation');
+    const analyseBtn = document.getElementById('analyseBtn');
+    
+    // Real-time URL validation
+    if (urlInput) {
+        urlInput.addEventListener('input', debounce(() => {
+            const url = urlInput.value.trim();
+            if (url === '') {
+                urlInput.setAttribute('aria-invalid', 'false');
+                return;
+            }
+            
+            if (validatePlaylistUrl(url)) {
+                urlInput.setAttribute('aria-invalid', 'false');
+                urlInput.style.borderColor = 'var(--success-green)';
+            } else {
+                urlInput.setAttribute('aria-invalid', 'true');
+                urlInput.style.borderColor = 'var(--error-red)';
+            }
+        }, 500));
+    }
     
     /**
      * Handle form submission
-     * Sends playlist URL to backend for analysis
      */
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -92,13 +262,28 @@ if (document.getElementById('analyseForm')) {
         const playlistUrl = urlInput.value.trim();
         
         if (!playlistUrl) {
-            showError('Please enter a Spotify playlist URL');
+            showError('Please enter a Spotify playlist URL', 'INVALID_URL');
+            urlInput.focus();
             return;
         }
         
+        if (!validatePlaylistUrl(playlistUrl)) {
+            showError('Please enter a valid Spotify playlist URL', 'INVALID_URL');
+            urlInput.setAttribute('aria-invalid', 'true');
+            urlInput.focus();
+            return;
+        }
+        
+        // Disable form during submission
+        analyseBtn.disabled = true;
+        analyseBtn.style.opacity = '0.6';
+        urlInput.disabled = true;
+        
         // Show loading animation
         showElement(loadingAnimation);
+        startLoadingProgress();
         hideElement(document.getElementById('errorMessage'));
+        hideElement(document.getElementById('successMessage'));
         
         try {
             // Send request to Flask backend
@@ -115,370 +300,183 @@ if (document.getElementById('analyseForm')) {
             const data = await response.json();
             
             if (!response.ok) {
-                throw new Error(data.error || 'Failed to analyse playlist');
+                // Handle different error types
+                let errorType = 'GENERIC';
+                if (response.status === 404) errorType = 'NOT_FOUND';
+                else if (response.status === 429) errorType = 'RATE_LIMIT';
+                else if (response.status === 403) errorType = 'PRIVATE_PLAYLIST';
+                else if (response.status >= 500) errorType = 'SERVER_ERROR';
+                
+                throw new Error(data.error || ERROR_MESSAGES[errorType].message);
             }
             
             if (data.success) {
-                // Store results in sessionStorage for results page
+                // Store results in sessionStorage
                 sessionStorage.setItem('playlistResults', JSON.stringify(data));
+                sessionStorage.setItem('analysisTimestamp', Date.now().toString());
+                
+                // Show success briefly before redirect
+                showSuccess('Analysis complete! Redirecting...');
                 
                 // Redirect to results page
-                window.location.href = '/results';
+                setTimeout(() => {
+                    window.location.href = '/results';
+                }, 1000);
             } else {
                 throw new Error(data.error || 'Analysis failed');
             }
             
         } catch (error) {
+            stopLoadingProgress();
             hideElement(loadingAnimation);
-            showError(error.message);
-            console.error('Error:', error);
-        }
-    });
-}
-
-// ==================== RESULTS PAGE (results.html) ====================
-
-// Check if we're on the results page
-if (document.getElementById('resultsContent')) {
-    // DOM elements
-    const resultsLoading = document.getElementById('resultsLoading');
-    const resultsError = document.getElementById('resultsError');
-    const resultsData = document.getElementById('resultsData');
-    
-    /**
-     * Load and display results from sessionStorage
-     */
-    function loadResults() {
-        // Get results from sessionStorage
-        const resultsJson = sessionStorage.getItem('playlistResults');
-        
-        if (!resultsJson) {
-            // No results found - show error
-            showResultsError('No results found. Please analyse a playlist first.');
-            return;
-        }
-        
-        try {
-            const results = JSON.parse(resultsJson);
             
-            // Hide loading, show data
-            hideElement(resultsLoading);
-            resultsData.style.display = 'block';
+            // Re-enable form
+            analyseBtn.disabled = false;
+            analyseBtn.style.opacity = '1';
+            urlInput.disabled = false;
             
-            // Populate the page with results
-            displayResults(results);
-            
-        } catch (error) {
-            showResultsError('Error loading results. Please try again.');
-            console.error('Error:', error);
-        }
-    }
-    
-    /**
-     * Show error state on results page
-     * @param {string} message - Error message to display
-     */
-    function showResultsError(message) {
-        hideElement(resultsLoading);
-        resultsError.style.display = 'flex';
-        resultsError.querySelector('.error-text').textContent = message;
-    }
-    
-    /**
-     * Display all results on the page
-     * @param {Object} results - Results object from backend
-     */
-    function displayResults(results) {
-        // Playlist header with cover image
-        if (results.playlist_image) {
-            const playlistHeader = document.querySelector('.playlist-header');
-            const playlistCover = document.createElement('img');
-            playlistCover.src = results.playlist_image;
-            playlistCover.alt = results.playlist_name;
-            playlistCover.className = 'playlist-cover';
-            
-            const playlistInfo = document.createElement('div');
-            playlistInfo.className = 'playlist-info';
-            playlistInfo.innerHTML = `
-                <h2>${escapeHtml(results.playlist_name)}</h2>
-                <p class="track-count"><span>${results.track_count}</span> tracks analysed</p>
-            `;
-            
-            // Clear header and rebuild with cover
-            playlistHeader.innerHTML = '';
-            playlistHeader.appendChild(playlistCover);
-            playlistHeader.appendChild(playlistInfo);
-        } else {
-            document.getElementById('playlistName').textContent = results.playlist_name;
-            document.getElementById('trackCount').textContent = results.track_count;
-        }
-        
-        // Overall rating
-        const overallRating = Math.round(results.ratings.overall_rating);
-        document.getElementById('overallRating').textContent = overallRating;
-        animateCircle(overallRating);
-        
-        // Individual ratings with staggered animations
-        const ratings = results.ratings;
-        
-        document.getElementById('artistScore').textContent = 
-            Math.round(ratings.artist_diversity_rating) + '%';
-        animateBar('artistBar', ratings.artist_diversity_rating, 300);
-        
-        document.getElementById('genreScore').textContent = 
-            Math.round(ratings.genre_cohesion_rating) + '%';
-        animateBar('genreBar', ratings.genre_cohesion_rating, 500);
-        
-        document.getElementById('popularityScore').textContent = 
-            Math.round(ratings.popularity_rating) + '%';
-        animateBar('popularityBar', ratings.popularity_rating, 700);
-        
-        document.getElementById('lengthScore').textContent = 
-            Math.round(ratings.playlist_length_rating) + '%';
-        animateBar('lengthBar', ratings.playlist_length_rating, 900);
-        
-        // Era diversity rating (if available)
-        if (ratings.era_diversity_rating !== undefined) {
-            document.getElementById('eraScore').textContent = 
-                Math.round(ratings.era_diversity_rating) + '%';
-            animateBar('eraBar', ratings.era_diversity_rating, 1100);
-        }
-        
-        // Popular genres
-        displayGenres(results.popular_genres);
-        
-        // Tracks list
-        displayTracks(results.tracks);
-        
-        // Recommendations
-        displayRecommendations(results.recommendations);
-    }
-    
-    /**
-     * Display popular genres section
-     * @param {Array} genres - Array of genre objects
-     */
-    function displayGenres(genres) {
-        const genresList = document.getElementById('genresList');
-        genresList.innerHTML = '';
-        
-        genres.forEach((genre) => {
-            const genreItem = document.createElement('div');
-            genreItem.className = 'genre-item';
-            genreItem.innerHTML = `
-                <span class="genre-name">${genre.name}</span>
-                <span class="genre-percentage">${genre.percentage}%</span>
-            `;
-            genresList.appendChild(genreItem);
-        });
-    }
-    
-    /**
-     * Display tracks list
-     * @param {Array} tracks - Array of track objects
-     */
-    function displayTracks(tracks) {
-        const tracksList = document.getElementById('tracksList');
-        tracksList.innerHTML = '';
-        
-        tracks.forEach((track, index) => {
-            const trackItem = document.createElement('div');
-            trackItem.className = 'track-item';
-            
-            // Build explicit badge HTML
-            const explicitBadge = track.explicit ? '<span class="explicit-badge">E</span>' : '';
-            
-            // Build preview player HTML
-            const previewPlayer = track.preview_url ? 
-                `<audio controls class="track-preview">
-                    <source src="${track.preview_url}" type="audio/mpeg">
-                </audio>` : '';
-            
-            // Build Spotify link HTML
-            const spotifyLink = track.spotify_url ? 
-                `<a href="${track.spotify_url}" target="_blank" class="spotify-link" title="Open in Spotify">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-                    </svg>
-                    Spotify
-                </a>` : '';
-            
-            trackItem.innerHTML = `
-                <span class="track-number">${index + 1}</span>
-                ${track.album_image_small ? `<img src="${track.album_image_small}" class="album-art" alt="${escapeHtml(track.album)}" loading="lazy">` : ''}
-                <div class="track-info">
-                    <div class="track-header">
-                        <span class="track-name">${escapeHtml(track.name)}</span>
-                        ${explicitBadge}
-                    </div>
-                    <div class="track-artists">${escapeHtml(track.artists.join(', '))}</div>
-                    <div class="track-meta">
-                        <span class="track-duration">${track.duration}</span>
-                        <span>•</span>
-                        <span>${escapeHtml(track.album)}</span>
-                        ${spotifyLink ? '<span>•</span>' + spotifyLink : ''}
-                    </div>
-                    ${previewPlayer}
-                </div>
-            `;
-            tracksList.appendChild(trackItem);
-        });
-        
-        // Add toggle functionality
-        const toggleBtn = document.getElementById('toggleTracks');
-        toggleBtn.addEventListener('click', () => {
-            if (tracksList.style.display === 'none') {
-                tracksList.style.display = 'block';
-                toggleBtn.textContent = 'Hide Tracks';
+            // Show error message
+            if (error.message.includes('fetch')) {
+                showError(ERROR_MESSAGES.NETWORK_ERROR.message, 'NETWORK_ERROR');
             } else {
-                tracksList.style.display = 'none';
-                toggleBtn.textContent = 'Show All Tracks';
+                showError(error.message);
             }
-        });
-    }
-    
-    /**
-     * Display recommendations
-     * @param {Array} recommendations - Array of recommended track objects
-     */
-    function displayRecommendations(recommendations) {
-        const recommendationsList = document.getElementById('recommendationsList');
-        recommendationsList.innerHTML = '';
-        
-        if (recommendations.length === 0) {
-            recommendationsList.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No recommendations available.</p>';
-            return;
-        }
-        
-        recommendations.forEach((track) => {
-            const recItem = document.createElement('div');
-            recItem.className = 'recommendation-item';
             
-            // Build explicit badge HTML
-            const explicitBadge = track.explicit ? '<span class="explicit-badge">E</span>' : '';
-            
-            // Build preview player HTML
-            const previewPlayer = track.preview_url ? 
-                `<audio controls class="track-preview">
-                    <source src="${track.preview_url}" type="audio/mpeg">
-                </audio>` : '';
-            
-            // Build Spotify link HTML
-            const spotifyLink = track.spotify_url ? 
-                `<a href="${track.spotify_url}" target="_blank" class="spotify-link" title="Open in Spotify">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-                    </svg>
-                    Open in Spotify
-                </a>` : '';
-            
-            recItem.innerHTML = `
-                ${track.album_image_small ? `<img src="${track.album_image_small}" class="album-art" alt="${escapeHtml(track.album)}" loading="lazy">` : ''}
-                <div class="track-info">
-                    <div class="track-header">
-                        <span class="track-name">${escapeHtml(track.name)}</span>
-                        ${explicitBadge}
-                    </div>
-                    <div class="track-artists">${escapeHtml(track.artists.join(', '))}</div>
-                    <div class="track-meta">
-                        <span class="track-duration">${track.duration}</span>
-                        <span>•</span>
-                        <span>${escapeHtml(track.album)} (${track.release_year})</span>
-                    </div>
-                    ${spotifyLink ? '<div style="margin-top: 8px;">' + spotifyLink + '</div>' : ''}
-                    ${previewPlayer}
-                </div>
-            `;
-            recommendationsList.appendChild(recItem);
-        });
-    }
-    
-    /**
-     * Escape HTML to prevent XSS attacks
-     * @param {string} text - Text to escape
-     * @returns {string} Escaped text
-     */
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-    
-    // Load results when page loads
-    loadResults();
-}
-
-// ==================== SMOOTH SCROLLING ====================
-
-/**
- * Add smooth scrolling behaviour for anchor links
- */
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
+            console.error('Analysis error:', error);
         }
     });
-});
+    
+    // Track mouse position for hover effect
+    const inputSection = document.querySelector('.input-section');
+    if (inputSection) {
+        inputSection.addEventListener('mousemove', (e) => {
+            const rect = inputSection.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            inputSection.style.setProperty('--mouse-x', `${x}%`);
+            inputSection.style.setProperty('--mouse-y', `${y}%`);
+        });
+    }
+}
 
-// ==================== KEYBOARD ACCESSIBILITY ====================
+// ==================== PWA INSTALL ====================
 
-/**
- * Add keyboard navigation support for interactive elements
- */
-document.addEventListener('keydown', (event) => {
-    // Enter key on buttons and links
-    if (event.key === 'Enter' && event.target.tagName === 'BUTTON') {
-        event.target.click();
+let deferredPrompt;
+
+// Listen for install prompt
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    
+    // Show install prompt
+    const installPrompt = document.getElementById('installPrompt');
+    if (installPrompt) {
+        installPrompt.removeAttribute('hidden');
     }
 });
+
+/**
+ * Install PWA
+ */
+function installApp() {
+    if (!deferredPrompt) return;
+    
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+            showToast('App installed successfully!');
+        }
+        deferredPrompt = null;
+        dismissInstall();
+    });
+}
+
+/**
+ * Dismiss install prompt
+ */
+function dismissInstall() {
+    const installPrompt = document.getElementById('installPrompt');
+    if (installPrompt) {
+        installPrompt.setAttribute('hidden', '');
+    }
+    localStorage.setItem('installPromptDismissed', 'true');
+}
+
+// Check if user previously dismissed install prompt
+if (localStorage.getItem('installPromptDismissed')) {
+    dismissInstall();
+}
 
 // ==================== PAGE LOAD ANIMATIONS ====================
 
-/**
- * Add fade-in animation to feature cards on page load
- */
 window.addEventListener('DOMContentLoaded', () => {
+    // Animate feature cards
     const featureCards = document.querySelectorAll('.feature-card');
-    
     featureCards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
         setTimeout(() => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(20px)';
             card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-            
-            setTimeout(() => {
-                card.style.opacity = '1';
-                card.style.transform = 'translateY(0)';
-            }, 100);
-        }, index * 100);
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, 100 + (index * 100));
     });
 });
 
+// ==================== ACCESSIBILITY ====================
+
+/**
+ * Keyboard navigation support
+ */
+document.addEventListener('keydown', (event) => {
+    // Enter key on buttons
+    if (event.key === 'Enter' && event.target.tagName === 'BUTTON') {
+        event.target.click();
+    }
+    
+    // Escape key to close modals
+    if (event.key === 'Escape') {
+        closeExamples();
+        closeShare();
+    }
+});
+
+/**
+ * Focus trap for modals
+ */
+function trapFocus(element) {
+    const focusableElements = element.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+    
+    element.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') {
+            if (e.shiftKey && document.activeElement === firstElement) {
+                e.preventDefault();
+                lastElement.focus();
+            } else if (!e.shiftKey && document.activeElement === lastElement) {
+                e.preventDefault();
+                firstElement.focus();
+            }
+        }
+    });
+}
+
+// Apply focus trap to modals
+const modals = document.querySelectorAll('.modal');
+modals.forEach(modal => trapFocus(modal));
+
 // ==================== ERROR HANDLING ====================
 
-/**
- * Global error handler for uncaught errors
- */
+// Global error handler (for production error tracking if needed)
 window.addEventListener('error', (event) => {
-    console.error('Global error:', event.error);
-    // You can add additional error reporting here if needed
+    console.error('Error:', event.error);
 });
 
-/**
- * Handle unhandled promise rejections
- */
 window.addEventListener('unhandledrejection', (event) => {
-    console.error('Unhandled promise rejection:', event.reason);
-    // You can add additional error reporting here if needed
+    console.error('Promise rejection:', event.reason);
 });
 
-// ==================== CONSOLE MESSAGE ====================
-
-console.log('%c🎵 pyAux - Spotify Playlist Analyser', 'color: #00ff41; font-size: 20px; font-weight: bold;');
-console.log('%cBuilt with Flask, JavaScript, and lots of 💚', 'color: #00ff41; font-size: 14px;');

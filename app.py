@@ -58,6 +58,15 @@ def create_app(config_name=None):
     # Register routes
     register_routes(app, spotify_service)
     
+    # Disable caching in development mode for live reload
+    if app.config['DEBUG']:
+        @app.after_request
+        def disable_cache(response):
+            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+            return response
+    
     # Health check endpoint
     @app.route('/health')
     def health_check():
@@ -84,12 +93,12 @@ def register_routes(app, spotify_service):
     @app.route('/')
     def index():
         """Render landing page"""
-        return render_template('index.html')
+        return render_template('index_improved.html')
     
     @app.route('/results')
     def results():
         """Render results page"""
-        return render_template('results.html')
+        return render_template('results_improved.html')
     
     @app.route('/api/v1/analyze', methods=['POST'])
     @rate_limit
@@ -194,6 +203,68 @@ def register_routes(app, spotify_service):
     def analyse_legacy():
         """Legacy endpoint - redirects to new API"""
         return analyze_playlist()
+    
+    @app.route('/api/v1/youtube-search', methods=['POST'])
+    @rate_limit
+    def youtube_search():
+        """Search YouTube for a track and return video ID"""
+        try:
+            import yt_dlp
+            
+            data = request.get_json()
+            if not data:
+                raise ValueError("Request body must be JSON")
+            
+            track_name = data.get('track_name', '').strip()
+            artist_name = data.get('artist_name', '').strip()
+            
+            if not track_name or not artist_name:
+                raise ValueError("track_name and artist_name are required")
+            
+            # Clean up names for better search
+            clean_track = track_name.replace('(', '').replace(')', '').replace('[', '').replace(']', '')
+            clean_artist = artist_name.replace('(', '').replace(')', '')
+            
+            # Search YouTube with optimized query
+            search_query = f"ytsearch1:{clean_track} {clean_artist} official audio"
+            logger.info(f"Searching YouTube: {search_query}")
+            
+            ydl_opts = {
+                'quiet': True,
+                'no_warnings': True,
+                'extract_flat': True,
+                'skip_download': True
+            }
+            
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                result = ydl.extract_info(search_query, download=False)
+                
+                if result and 'entries' in result and len(result['entries']) > 0:
+                    video = result['entries'][0]
+                    video_id = video.get('id')
+                    video_title = video.get('title', 'Unknown')
+                    
+                    logger.info(f"Found video: {video_title} (ID: {video_id})")
+                    
+                    return jsonify({
+                        'success': True,
+                        'video_id': video_id,
+                        'video_title': video_title
+                    }), 200
+                else:
+                    logger.warning(f"No YouTube results for: {search_query}")
+                    return jsonify({
+                        'success': False,
+                        'error': 'No results found'
+                    }), 404
+        
+        except Exception as e:
+            logger.error(f"YouTube search error: {str(e)}", exc_info=True)
+            return jsonify({
+                'success': False,
+                'error': 'Search failed',
+                'message': str(e)
+            }), 500
 
 
 # Create application instance

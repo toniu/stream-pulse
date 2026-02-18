@@ -108,12 +108,13 @@ def add_security_headers(response):
     # Content Security Policy
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data: https:; "
         "font-src 'self' data:; "
-        "connect-src 'self' https://api.spotify.com; "
+        "connect-src 'self' https://api.spotify.com https://cdn.jsdelivr.net; "
         "media-src 'self' https:; "
+        "frame-src 'self' https://www.youtube.com; "
     )
     
     # Referrer Policy
