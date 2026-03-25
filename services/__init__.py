@@ -2,5 +2,6 @@
 
 from .spotify_service import SpotifyService
 from .analysis_service import AnalysisService
+from .flow_service import FlowService
 
-__all__ = ['SpotifyService', 'AnalysisService']
+__all__ = ['SpotifyService', 'AnalysisService', 'FlowService']

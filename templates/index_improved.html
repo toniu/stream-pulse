@@ -98,27 +98,6 @@
                         URL format: https://open.spotify.com/playlist/...
                     </div>
 
-                    <!-- Playlist Purpose Selection -->
-                    <div class="purpose-selector">
-                        <label for="playlistPurpose" class="purpose-label">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="vertical-align: middle; margin-right: 8px;">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="12 6 12 12 16 14"></polyline>
-                            </svg>
-                            What's this playlist for?
-                        </label>
-                        <select id="playlistPurpose" name="purpose" aria-label="Select playlist purpose">
-                            <option value="general" selected>General Listening</option>
-                            <option value="party">Party / Social</option>
-                            <option value="workout">Workout / Exercise</option>
-                            <option value="focus">Focus / Study</option>
-                            <option value="discovery">Discovery / Exploration</option>
-                            <option value="background">Background / Ambient</option>
-                            <option value="roadtrip">Road Trip / Travel</option>
-                        </select>
-                        <p class="purpose-help">This helps us optimize the analysis for your specific use case</p>
-                    </div>
-
                     <!-- Submit button with hover effect -->
                     <button type="submit" class="analyse-btn" id="analyseBtn" aria-label="Analyse your Spotify playlist">
                         <span class="btn-text">Analyse Playlist</span>
@@ -162,36 +141,33 @@
                 <div class="feature-card" tabindex="0">
                     <div class="feature-icon" aria-hidden="true">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#1DB954" stroke-width="2"/>
-                            <circle cx="9" cy="7" r="4" stroke="#1DB954" stroke-width="2"/>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="#1DB954" stroke-width="2"/>
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="#1DB954" stroke-width="2"/>
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke="#1DB954" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </div>
-                    <h3>Artist Diversity</h3>
-                    <p>Analyses unique artists vs. total tracks to evaluate variety and discover if you're exploring new talent</p>
+                    <h3>Mood Timeline</h3>
+                    <p>See how energy, mood, and danceability flow across your playlist track by track</p>
                 </div>
                 
                 <div class="feature-card" tabindex="0">
                     <div class="feature-icon" aria-hidden="true">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <circle cx="12" cy="12" r="10" stroke="#1DB954" stroke-width="2"/>
-                            <circle cx="12" cy="12" r="6" stroke="#1DB954" stroke-width="2"/>
-                            <circle cx="12" cy="12" r="2" fill="#1DB954"/>
+                            <line x1="12" y1="8" x2="12" y2="12" stroke="#1DB954" stroke-width="2" stroke-linecap="round"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16" stroke="#1DB954" stroke-width="2" stroke-linecap="round"/>
                         </svg>
                     </div>
-                    <h3>Genre Cohesion</h3>
-                    <p>Measures how focused your playlist is on specific genres while maintaining interesting variety</p>
+                    <h3>Vibe Outliers</h3>
+                    <p>Spot the tracks that break the vibe — songs that stand out from the rest of the playlist</p>
                 </div>
                 
                 <div class="feature-card" tabindex="0">
                     <div class="feature-icon" aria-hidden="true">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="#1DB954"/>
+                            <path d="M4 14h4v8H4zM10 10h4v12h-4zM16 6h4v16h-4z" stroke="#1DB954" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </div>
-                    <h3>Popularity Balance</h3>
-                    <p>Evaluates the mix of popular hits and underground gems for the perfect discovery-to-familiarity ratio</p>
+                    <h3>Smart Reorder</h3>
+                    <p>Reshape your playlist's energy curve — build up, wind down, wave, or keep it steady</p>
                 </div>
                 
                 <div class="feature-card" tabindex="0">
@@ -202,32 +178,33 @@
                             <circle cx="18" cy="16" r="3" stroke="#1DB954" stroke-width="2"/>
                         </svg>
                     </div>
-                    <h3>Smart Recommendations</h3>
-                    <p>Get personalized track suggestions powered by Spotify's algorithm to enhance your playlist</p>
+                    <h3>Similar Vibes</h3>
+                    <p>Get track suggestions that match your playlist's DNA, powered by Spotify's algorithm</p>
                 </div>
                 
                 <div class="feature-card" tabindex="0">
                     <div class="feature-icon" aria-hidden="true">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="3" y="4" width="18" height="18" rx="2" stroke="#1DB954" stroke-width="2"/>
-                            <line x1="16" y1="2" x2="16" y2="6" stroke="#1DB954" stroke-width="2"/>
-                            <line x1="8" y1="2" x2="8" y2="6" stroke="#1DB954" stroke-width="2"/>
-                            <line x1="3" y1="10" x2="21" y2="10" stroke="#1DB954" stroke-width="2"/>
+                            <circle cx="12" cy="12" r="10" stroke="#1DB954" stroke-width="2"/>
+                            <circle cx="12" cy="12" r="6" stroke="#1DB954" stroke-width="2"/>
+                            <circle cx="12" cy="12" r="2" fill="#1DB954"/>
                         </svg>
                     </div>
-                    <h3>Era Analysis</h3>
-                    <p>Track the time span of your music from vintage classics to modern releases</p>
+                    <h3>Genre Breakdown</h3>
+                    <p>See the genre make-up of your playlist at a glance with visual bars</p>
                 </div>
                 
                 <div class="feature-card" tabindex="0">
                     <div class="feature-icon" aria-hidden="true">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="#1DB954" stroke-width="2"/>
-                            <polyline points="22 4 12 14.01 9 11.01" stroke="#1DB954" stroke-width="2"/>
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#1DB954" stroke-width="2"/>
+                            <circle cx="9" cy="7" r="4" stroke="#1DB954" stroke-width="2"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="#1DB954" stroke-width="2"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="#1DB954" stroke-width="2"/>
                         </svg>
                     </div>
-                    <h3>Optimal Length</h3>
-                    <p>Ensures your playlist duration is perfect for its purpose - not too short, not too long</p>
+                    <h3>Playlist Profile</h3>
+                    <p>Personality tags, audio averages, and a quick DNA snapshot of your playlist's character</p>
                 </div>
             </div>
 

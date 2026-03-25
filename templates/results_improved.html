@@ -15,10 +15,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <title>Analysis Results - pyAux</title>
+    <title>Playlist DNA - pyAux</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <!-- Chart.js removed - charts not currently displayed -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
 </head>
 <body class="results-page">
     <!-- Skip link -->
@@ -86,8 +85,7 @@
                     <img id="playlistCover" class="playlist-cover" alt="Playlist cover" loading="eager">
                     <div class="playlist-info">
                         <div class="playlist-badges">
-                            <span class="playlist-type">Spotify Playlist</span>
-                            <span class="playlist-purpose-badge" id="purposeBadge"></span>
+                            <span class="playlist-type">Playlist DNA</span>
                         </div>
                         <h2 id="playlistName">Playlist Name</h2>
                         <div class="playlist-meta">
@@ -96,13 +94,6 @@
                             <span id="trackCount">0 tracks</span>
                             <span aria-hidden="true">•</span>
                             <span id="playlistDuration">0h 0m</span>
-                        </div>
-                        
-                        <!-- Overall Rating Badge -->
-                        <div class="rating-badge-large">
-                            <div class="badge-score" id="overallScoreBadge">0</div>
-                            <div class="badge-label">Overall Score</div>
-                            <div class="badge-rank" id="ratingRank">Good</div>
                         </div>
                     </div>
                 </section>
@@ -166,13 +157,19 @@
 
                 <!-- Tabbed Navigation -->
                 <nav class="results-tabs" role="tablist">
-                    <button class="tab active" role="tab" aria-selected="true" aria-controls="overview-panel" id="overview-tab" onclick="switchTab('overview')">
+                    <button class="tab active" role="tab" aria-selected="true" aria-controls="profile-panel" id="profile-tab" onclick="switchTab('profile')">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-                            <line x1="18" y1="20" x2="18" y2="10"></line>
-                            <line x1="12" y1="20" x2="12" y2="4"></line>
-                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
                         </svg>
-                        Overview
+                        Profile
+                    </button>
+                    <button class="tab" role="tab" aria-selected="false" aria-controls="timeline-panel" id="timeline-tab" onclick="switchTab('timeline')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                        Timeline
                     </button>
                     <button class="tab" role="tab" aria-selected="false" aria-controls="tracks-panel" id="tracks-tab" onclick="switchTab('tracks')">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
@@ -182,169 +179,87 @@
                         </svg>
                         Tracks
                     </button>
-                    <button class="tab" role="tab" aria-selected="false" aria-controls="recommendations-panel" id="recommendations-tab" onclick="switchTab('recommendations')">
+                    <button class="tab" role="tab" aria-selected="false" aria-controls="reorder-panel" id="reorder-tab" onclick="switchTab('reorder')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                        Reorder
+                    </button>
+                    <button class="tab" role="tab" aria-selected="false" aria-controls="vibes-panel" id="vibes-tab" onclick="switchTab('vibes')">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
                             <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="16" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                            <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                            <line x1="15" y1="9" x2="15.01" y2="9"></line>
                         </svg>
-                        Recommendations
-                    </button>
-                    <button class="tab" role="tab" aria-selected="false" aria-controls="insights-panel" id="insights-tab" onclick="switchTab('insights')">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                        </svg>
-                        Insights
+                        Similar Vibes
                     </button>
                 </nav>
 
                 <!-- Tab Panels -->
-                
-                <!-- Overview Panel -->
-                <div id="overview-panel" class="tab-panel active" role="tabpanel" aria-labelledby="overview-tab">
-                    <!-- Rating Cards Grid -->
-                    <div class="rating-cards">
-                        <div class="rating-card" data-rating="artist">
-                            <div class="card-header">
-                                <div class="card-icon">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                        <circle cx="9" cy="7" r="4"></circle>
-                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                    </svg>
-                                </div>
-                                <div class="card-score" id="artistRating">0</div>
-                            </div>
-                            <h3>Artist Diversity</h3>
-                            <p class="card-description" id="artistDescription">Loading...</p>
-                            <div class="card-progress">
-                                <div class="progress-bar-mini">
-                                    <div class="progress-fill-mini" id="artistProgress"></div>
-                                </div>
-                            </div>
-                            <div class="card-trend" id="artistTrend"></div>
-                        </div>
 
-                        <div class="rating-card" data-rating="genre">
-                            <div class="card-header">
-                                <div class="card-icon">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path d="M9 18V5l12-2v13"></path>
-                                        <circle cx="6" cy="18" r="3"></circle>
-                                        <circle cx="18" cy="16" r="3"></circle>
-                                    </svg>
-                                </div>
-                                <div class="card-score" id="genreRating">0</div>
-                            </div>
-                            <h3>Genre Cohesion</h3>
-                            <p class="card-description" id="genreDescription">Loading...</p>
-                            <div class="card-progress">
-                                <div class="progress-bar-mini">
-                                    <div class="progress-fill-mini" id="genreProgress"></div>
-                                </div>
-                            </div>
-                            <div class="card-trend" id="genreTrend"></div>
+                <!-- Profile Panel -->
+                <div id="profile-panel" class="tab-panel active" role="tabpanel" aria-labelledby="profile-tab">
+                    <div class="profile-grid">
+                        <div class="profile-card">
+                            <h3>🎨 Playlist Personality</h3>
+                            <div class="personality-tags" id="personalityTags"></div>
+                            <p class="insight-text" id="personalityText"></p>
                         </div>
-
-                        <div class="rating-card" data-rating="popularity">
-                            <div class="card-header">
-                                <div class="card-icon">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                                    </svg>
-                                </div>
-                                <div class="card-score" id="popularityRating">0</div>
-                            </div>
-                            <h3>Popularity Balance</h3>
-                            <p class="card-description" id="popularityDescription">Loading...</p>
-                            <div class="card-progress">
-                                <div class="progress-bar-mini">
-                                    <div class="progress-fill-mini" id="popularityProgress"></div>
-                                </div>
-                            </div>
-                            <div class="card-trend" id="popularityTrend"></div>
+                        <div class="profile-card">
+                            <h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="vertical-align: text-bottom; display: inline-block; stroke-width: 2;">
+                                    <path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle>
+                                </svg>
+                                Top Genres
+                            </h3>
+                            <div id="genreList" class="genre-list"></div>
                         </div>
-
-                        <div class="rating-card" data-rating="length">
-                            <div class="card-header">
-                                <div class="card-icon">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <polyline points="12 6 12 12 16 14"></polyline>
-                                    </svg>
-                                </div>
-                                <div class="card-score" id="lengthRating">0</div>
-                            </div>
-                            <h3>Playlist Length</h3>
-                            <p class="card-description" id="lengthDescription">Loading...</p>
-                            <div class="card-progress">
-                                <div class="progress-bar-mini">
-                                    <div class="progress-fill-mini" id="lengthProgress"></div>
-                                </div>
-                            </div>
-                            <div class="card-trend" id="lengthTrend"></div>
+                        <div class="profile-card">
+                            <h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="vertical-align: text-bottom; display: inline-block; stroke-width: 2;">
+                                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                                </svg>
+                                Key Statistics
+                            </h3>
+                            <div class="stats-grid" id="keyStats"></div>
                         </div>
-
-                        <div class="rating-card" data-rating="era">
-                            <div class="card-header">
-                                <div class="card-icon">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                                    </svg>
-                                </div>
-                                <div class="card-score" id="eraRating">0</div>
+                        <div class="profile-card">
+                            <h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="vertical-align: text-bottom; display: inline-block; stroke-width: 2;">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                                Vibe Outliers
+                            </h3>
+                            <div class="outliers-list" id="outliersList">
+                                <p class="empty-outliers">No strong outliers detected.</p>
                             </div>
-                            <h3>Era Diversity</h3>
-                            <p class="card-description" id="eraDescription">Loading...</p>
-                            <div class="card-progress">
-                                <div class="progress-bar-mini">
-                                    <div class="progress-fill-mini" id="eraProgress"></div>
-                                </div>
-                            </div>
-                            <div class="card-trend" id="eraTrend"></div>
-                        </div>
-
-                        <div class="rating-card" data-rating="flow">
-                            <div class="card-header">
-                                <div class="card-icon">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path d="M3 3v18h18"></path>
-                                        <path d="M18 17l-4-10-4 10-2-6"></path>
-                                    </svg>
-                                </div>
-                                <div class="card-score" id="flowRating">0</div>
-                            </div>
-                            <h3>Flow & Consistency</h3>
-                            <p class="card-description" id="flowDescription">Loading...</p>
-                            <div class="card-progress">
-                                <div class="progress-bar-mini">
-                                    <div class="progress-fill-mini" id="flowProgress"></div>
-                                </div>
-                            </div>
-                            <div class="card-trend" id="flowTrend"></div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Improvement Suggestions -->
-                    <div class="improvement-section">
-                        <h3>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="vertical-align: text-bottom; display: inline-block; stroke-width: 2;">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="16 12 12 8 8 12"></polyline>
-                                <line x1="12" y1="16" x2="12" y2="8"></line>
-                            </svg>
-                            How to Improve Your Score
-                        </h3>
-                        <p class="section-subtitle">Here's what you can do to reach a higher rating</p>
-                        <div id="suggestionsList" class="suggestions-list">
-                            <!-- Populated by JavaScript -->
+                <!-- Timeline Panel -->
+                <div id="timeline-panel" class="tab-panel" role="tabpanel" aria-labelledby="timeline-tab" hidden>
+                    <div class="timeline-section">
+                        <div class="timeline-controls">
+                            <h3>Mood &amp; Energy Timeline</h3>
+                            <div class="timeline-toggles" id="timelineToggles">
+                                <label class="toggle-chip active" data-feature="energy"><input type="checkbox" checked> Energy</label>
+                                <label class="toggle-chip active" data-feature="valence"><input type="checkbox" checked> Mood</label>
+                                <label class="toggle-chip" data-feature="danceability"><input type="checkbox"> Dance</label>
+                                <label class="toggle-chip" data-feature="acousticness"><input type="checkbox"> Acoustic</label>
+                            </div>
+                        </div>
+                        <div class="timeline-chart-container">
+                            <canvas id="timelineChart"></canvas>
                         </div>
                     </div>
-
                 </div>
 
                 <!-- Tracks Panel -->
@@ -366,6 +281,7 @@
                                     <option value="artist">By Artist</option>
                                     <option value="popularity">By Popularity</option>
                                     <option value="duration">By Duration</option>
+                                    <option value="energy">By Energy</option>
                                 </select>
                                 <button id="sortOrderBtn" class="sort-order-btn" aria-label="Toggle sort order" title="Toggle ascending/descending">
                                     <svg class="sort-icon sort-icon-asc" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -378,23 +294,52 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="tracks-list" id="tracksList" role="list">
-                        <!-- Populated by JavaScript -->
+                    <div class="tracks-list" id="tracksList" role="list"></div>
+                </div>
+
+                <!-- Reorder Panel -->
+                <div id="reorder-panel" class="tab-panel" role="tabpanel" aria-labelledby="reorder-tab" hidden>
+                    <div class="reorder-section">
+                        <h3>Smart Reorder</h3>
+                        <p class="section-subtitle">Pick an energy shape and we'll rearrange your tracks to match.</p>
+                        <div class="shape-picker" id="shapePicker">
+                            <button class="shape-card active" data-shape="build-up">
+                                <svg width="48" height="32" viewBox="0 0 48 32"><polyline points="4,28 24,16 44,4" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                                <span>Build Up</span>
+                            </button>
+                            <button class="shape-card" data-shape="wind-down">
+                                <svg width="48" height="32" viewBox="0 0 48 32"><polyline points="4,4 24,16 44,28" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                                <span>Wind Down</span>
+                            </button>
+                            <button class="shape-card" data-shape="wave">
+                                <svg width="48" height="32" viewBox="0 0 48 32"><path d="M4,28 Q16,4 24,4 Q32,4 44,28" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                                <span>Wave</span>
+                            </button>
+                            <button class="shape-card" data-shape="steady">
+                                <svg width="48" height="32" viewBox="0 0 48 32"><line x1="4" y1="16" x2="44" y2="16" stroke="currentColor" stroke-width="2"/></svg>
+                                <span>Steady</span>
+                            </button>
+                        </div>
+                        <button class="analyse-btn primary" id="reorderBtn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                            Reorder Tracks
+                        </button>
+                        <div class="reorder-results" id="reorderResults" style="display:none;">
+                            <h4>Reordered Playlist</h4>
+                            <div class="tracks-list" id="reorderedTracksList" role="list"></div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Recommendations Panel -->
-                <div id="recommendations-panel" class="tab-panel" role="tabpanel" aria-labelledby="recommendations-tab" hidden>
+                <!-- Similar Vibes Panel -->
+                <div id="vibes-panel" class="tab-panel" role="tabpanel" aria-labelledby="vibes-tab" hidden>
                     <div class="panel-header">
-                        <h3>Recommended Tracks</h3>
-                        <p class="section-subtitle">Add these to enhance your playlist</p>
+                        <h3>Similar Vibes</h3>
+                        <p class="section-subtitle">Tracks that share your playlist's sonic DNA</p>
                     </div>
-                    
-                    <div class="recommendations-list" id="recommendationsList" role="list">
-                        <!-- Populated by JavaScript -->
-                    </div>
-                    
+                    <div class="recommendations-list" id="recommendationsList" role="list"></div>
                     <div class="empty-state" id="emptyRecommendations" style="display: none;">
                         <div class="empty-icon">
                             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
@@ -404,61 +349,7 @@
                             </svg>
                         </div>
                         <h3>No recommendations available</h3>
-                        <p>Your playlist is already well-optimized!</p>
-                    </div>
-                </div>
-
-                <!-- Insights Panel -->
-                <div id="insights-panel" class="tab-panel" role="tabpanel" aria-labelledby="insights-tab" hidden>
-                    <div class="insights-grid">
-                        <div class="insight-card">
-                            <h3>🎨 Playlist Personality</h3>
-                            <div class="personality-tags" id="personalityTags">
-                                <!-- Tags populated by JS -->
-                            </div>
-                            <p class="insight-text" id="personalityText"></p>
-                        </div>
-                        
-                        <div class="insight-card">
-                            <h3>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="vertical-align: text-bottom; display: inline-block; stroke-width: 2;">
-                                    <line x1="18" y1="20" x2="18" y2="10"></line>
-                                    <line x1="12" y1="20" x2="12" y2="4"></line>
-                                    <line x1="6" y1="20" x2="6" y2="14"></line>
-                                </svg>
-                                Key Statistics
-                            </h3>
-                            <div class="stats-grid" id="keyStats">
-                                <!-- Stats populated by JS -->
-                            </div>
-                        </div>
-                        
-                        <div class="insight-card">
-                            <h3>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="vertical-align: text-bottom; display: inline-block; stroke-width: 2;">
-                                    <circle cx="12" cy="8" r="7"></circle>
-                                    <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
-                                </svg>
-                                Highlights
-                            </h3>
-                            <div class="highlights-list" id="highlightsList">
-                                <!-- Highlights populated by JS -->
-                            </div>
-                        </div>
-                        
-                        <div class="insight-card">
-                            <h3>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="vertical-align: text-bottom; display: inline-block; stroke-width: 2;">
-                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                                    <line x1="12" y1="9" x2="12" y2="13"></line>
-                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                                </svg>
-                                Watch Out For
-                            </h3>
-                            <div class="warnings-list" id="warningsList">
-                                <!-- Warnings populated by JS -->
-                            </div>
-                        </div>
+                        <p>We couldn't find closely related tracks to suggest.</p>
                     </div>
                 </div>
 

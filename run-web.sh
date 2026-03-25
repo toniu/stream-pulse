@@ -3,6 +3,9 @@
 # pyAux Web Application Launcher
 # This script helps you set up and run the Flask web application
 
+# Change to the script's directory so relative paths work
+cd "$(dirname "$0")"
+
 echo "🎵 pyAux - Spotify Playlist Analyser"
 echo "===================================="
 echo ""

@@ -1,0 +1,14 @@
+{
+  "name": "pyaux",
+  "version": "3.0.0",
+  "description": "Spotify Playlist Analyser",
+  "scripts": {
+    "start": ". venv/bin/activate && (sleep 2 && open http://localhost:5001) & python app.py",
+    "stop": "./clean-port.sh",
+    "dev": "concurrently \"cd frontend && npm run dev\" \"./venv/bin/python app.py\"",
+    "test": ". venv/bin/activate && python -m pytest tests/ -v"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

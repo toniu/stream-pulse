@@ -249,15 +249,75 @@ class SpotifyService:
                 logger.warning("No track IDs available for audio features")
                 return {}
             
-            # Fetch in batches (Spotify API limit: 100 tracks per request)
-            batch_size = 100
-            for i in range(0, len(track_ids), batch_size):
-                batch = track_ids[i:i + batch_size]
-                features_batch = self.client.audio_features(batch)
-                
+            # Fetch in batches (Spotify API limit: 100 tracks per request).
+            # If a batch request fails (403 or other transient error), retry with
+            # smaller sub-batches to isolate problematic IDs and continue.
+            initial_batch_size = 100
+            for i in range(0, len(track_ids), initial_batch_size):
+                batch = track_ids[i:i + initial_batch_size]
+                try:
+                    features_batch = self.client.audio_features(batch)
+                except Exception as e:
+                    logger.warning(f"audio_features batch request failed for {len(batch)} ids: {str(e)}")
+                    # Retry in smaller chunks (diagnostic + more likely to succeed)
+                    small_size = 25
+                    for j in range(0, len(batch), small_size):
+                        small_batch = batch[j:j + small_size]
+                        try:
+                            features_batch_small = self.client.audio_features(small_batch)
+                        except Exception as e2:
+                            logger.error(f"audio_features sub-batch failed ({len(small_batch)}): {str(e2)}")
+                            # Optionally try per-id to log failures (slow)
+                            for single_id in small_batch:
+                                try:
+                                    single_fb = self.client.audio_features([single_id])
+                                    fb_list = single_fb or []
+                                except Exception as e3:
+                                    logger.error(f"audio_features single id {single_id} failed: {str(e3)}")
+                                    fb_list = []
+                                for features in fb_list:
+                                    if features:
+                                        tid = features.get('id')
+                                        spotify_url = url_to_id_map.get(tid)
+                                        if spotify_url:
+                                            audio_features_map[spotify_url] = {
+                                                'energy': features.get('energy', 0.5),
+                                                'valence': features.get('valence', 0.5),
+                                                'danceability': features.get('danceability', 0.5),
+                                                'tempo': features.get('tempo', 120),
+                                                'loudness': features.get('loudness', -10),
+                                                'acousticness': features.get('acousticness', 0.5),
+                                                'instrumentalness': features.get('instrumentalness', 0.0),
+                                                'speechiness': features.get('speechiness', 0.1),
+                                                'key': features.get('key'),
+                                                'mode': features.get('mode'),
+                                            }
+                        else:
+                            for features in features_batch_small:
+                                if features:
+                                    tid = features.get('id')
+                                    spotify_url = url_to_id_map.get(tid)
+                                    if spotify_url:
+                                        audio_features_map[spotify_url] = {
+                                            'energy': features.get('energy', 0.5),
+                                            'valence': features.get('valence', 0.5),
+                                            'danceability': features.get('danceability', 0.5),
+                                            'tempo': features.get('tempo', 120),
+                                            'loudness': features.get('loudness', -10),
+                                            'acousticness': features.get('acousticness', 0.5),
+                                            'instrumentalness': features.get('instrumentalness', 0.0),
+                                            'speechiness': features.get('speechiness', 0.1),
+                                            'key': features.get('key'),
+                                            'mode': features.get('mode'),
+                                        }
+                            logger.debug(f"Processed sub-batch of {len(small_batch)} ids")
+                    # move on to next initial batch
+                    continue
+
+                # Process successful initial batch
                 for features in features_batch:
                     if features:
-                        track_id = features['id']
+                        track_id = features.get('id')
                         spotify_url = url_to_id_map.get(track_id)
                         if spotify_url:
                             audio_features_map[spotify_url] = {
@@ -268,9 +328,13 @@ class SpotifyService:
                                 'loudness': features.get('loudness', -10),
                                 'acousticness': features.get('acousticness', 0.5),
                                 'instrumentalness': features.get('instrumentalness', 0.0),
-                                'speechiness': features.get('speechiness', 0.1)
+                                'speechiness': features.get('speechiness', 0.1),
+                                'key': features.get('key'),
+                                'mode': features.get('mode'),
                             }
-            
+
+                logger.debug(f"batch_fetch_audio_features: requested {len(batch)} ids, returned {len(features_batch)} feature objects")
+
             logger.info(f"Fetched audio features for {len(audio_features_map)} tracks")
             return audio_features_map
             
@@ -279,6 +343,54 @@ class SpotifyService:
             # Return empty dict on failure
             return {}
     
+    def get_bridge_recommendations(self, target_features: Dict,
+                                     seed_track_ids: List[str],
+                                     existing_names: set,
+                                     limit: int = 5) -> List[Dict]:
+        """
+
+                        # Debug info for this batch
+                        logger.debug(
+                            f"batch_fetch_audio_features: requested {len(batch)} ids, returned {len(features_batch)} feature objects"
+                        )
+
+        Get bridge-track recommendations from Spotify based on target audio features.
+
+        Args:
+            target_features: Dict with target energy, valence, danceability, tempo, etc.
+            seed_track_ids: Up to 5 Spotify track IDs to seed from.
+            existing_names: Set of track names already in the playlist (to dedupe).
+            limit: Max results.
+
+        Returns:
+            List of parsed track dicts.
+        """
+        try:
+            kwargs = {
+                'seed_tracks': seed_track_ids[:5],
+                'limit': limit,
+                'target_energy': target_features.get('energy'),
+                'target_valence': target_features.get('valence'),
+                'target_danceability': target_features.get('danceability'),
+                'target_tempo': target_features.get('tempo'),
+            }
+            # Remove None values
+            kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+            results = self.client.recommendations(**kwargs)
+            recommendations = []
+            for item in results.get('tracks', []):
+                if item['name'] in existing_names:
+                    continue
+                track_data = self._parse_track(item)
+                if track_data:
+                    recommendations.append(track_data)
+            logger.info(f"Generated {len(recommendations)} bridge recommendations")
+            return recommendations[:limit]
+        except Exception as e:
+            logger.error(f"Error getting bridge recommendations: {str(e)}")
+            return []
+
     def get_recommendations(self, track_info: List[Dict], genre_cache: Dict, limit: int = 10) -> List[Dict]:
         """
         Generate track recommendations based on playlist
@@ -294,39 +406,91 @@ class SpotifyService:
         recommendations = []
         existing_artists = {artist for track in track_info for artist in track['artists']}
         included_albums = set()
-        
+
+        # Build a name → genres map so lookups work (genre_cache is keyed by ID)
+        name_to_genres = {}
+        for track in track_info:
+            for artist_obj in track.get('artist_info', []):
+                aid = artist_obj.get('id', '')
+                name = artist_obj.get('name', '')
+                if name and aid:
+                    name_to_genres[name] = genre_cache.get(aid, [])
+
+        # Calculate dominant genres in the playlist
+        genre_counts = {}
+        for artist_name, genres in name_to_genres.items():
+            for genre in genres:
+                genre_counts[genre] = genre_counts.get(genre, 0) + 1
+
+        # Sort genres by frequency
+        sorted_genres = sorted(genre_counts.items(), key=lambda x: x[1], reverse=True)
+        dominant_genres = {genre for genre, count in sorted_genres[:3]}  # Top 3 genres
+
         try:
             # Limit artists to process
             for artist in list(existing_artists)[:5]:
                 results = self.client.search(q=f'artist:{artist}', type='track', limit=5)
-                
+
                 for item in results['tracks']['items']:
                     if len(recommendations) >= limit:
                         break
-                    
+
                     # Skip tracks already in playlist
                     if item['name'] in {t['name'] for t in track_info}:
                         continue
-                    
+
                     # Skip duplicate albums
                     if item['album']['name'] in included_albums:
                         continue
-                    
+
+                    # Filter by dominant genres
+                    track_artist_id = item['artists'][0].get('id', '')
+                    track_genres = genre_cache.get(track_artist_id, []) or name_to_genres.get(item['artists'][0]['name'], [])
+                    if dominant_genres and not any(genre in dominant_genres for genre in track_genres):
+                        continue
+
                     track_data = self._parse_track(item)
                     if track_data:
-                        track_data['genre_similarity'] = 0.5  # Simplified
-                        recommendations.append(track_data)
-                        included_albums.add(item['album']['name'])
-                
+                        # Calculate genre similarity
+                        genre_similarity = len(set(track_genres) & dominant_genres) / len(dominant_genres)
+                        track_data['genre_similarity'] = genre_similarity
+
+                        # Add to recommendations if similarity is above threshold
+                        if genre_similarity > 0.3:  # Threshold for genre similarity
+                            recommendations.append(track_data)
+                            included_albums.add(item['album']['name'])
+
                 if len(recommendations) >= limit:
                     break
-            
-            # Sort by popularity
-            recommendations.sort(key=lambda x: x['popularity'], reverse=True)
+
+            # Fallback: search using top genres from the playlist
+            if len(recommendations) < limit:
+                fallback_query = ' '.join(list(dominant_genres)[:2]) if dominant_genres else 'music'
+                additional_results = self.client.search(q=fallback_query, type='track', limit=limit - len(recommendations))
+                for item in additional_results['tracks']['items']:
+                    if len(recommendations) >= limit:
+                        break
+
+                    # Skip tracks already in playlist
+                    if item['name'] in {t['name'] for t in track_info}:
+                        continue
+
+                    # Skip duplicate albums
+                    if item['album']['name'] in included_albums:
+                        continue
+
+                    track_data = self._parse_track(item)
+                    if track_data:
+                        track_data['genre_similarity'] = 0
+                        recommendations.append(track_data)
+                        included_albums.add(item['album']['name'])
+
+            # Sort by genre similarity and popularity
+            recommendations.sort(key=lambda x: (x['genre_similarity'], x['popularity']), reverse=True)
             logger.info(f"Generated {len(recommendations)} recommendations")
-            
+
             return recommendations[:limit]
-            
+
         except Exception as e:
             logger.error(f"Error generating recommendations: {str(e)}")
             return []

@@ -17,12 +17,12 @@ class Config:
     # Flask settings
     SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'dev-secret-key-change-in-production')
     
-    # Spotify API credentials
-    SPOTIFY_CLIENT_ID = os.getenv('CLIENT_ID')
-    SPOTIFY_CLIENT_SECRET = os.getenv('CLIENT_SECRET')
-    
+    # Spotify API credentials (support both CLIENT_* and SPOTIFY_* env names)
+    SPOTIFY_CLIENT_ID = os.getenv('CLIENT_ID') or os.getenv('SPOTIFY_CLIENT_ID')
+    SPOTIFY_CLIENT_SECRET = os.getenv('CLIENT_SECRET') or os.getenv('SPOTIFY_CLIENT_SECRET')
+
     if not SPOTIFY_CLIENT_ID or not SPOTIFY_CLIENT_SECRET:
-        raise ValueError("Spotify credentials (CLIENT_ID, CLIENT_SECRET) must be set")
+        raise ValueError("Spotify credentials (CLIENT_ID/ SPOTIFY_CLIENT_ID, CLIENT_SECRET/ SPOTIFY_CLIENT_SECRET) must be set")
     
     # Server settings
     HOST = os.getenv('FLASK_HOST', '0.0.0.0')
@@ -45,6 +45,9 @@ class Config:
     
     # CORS settings
     CORS_ORIGINS = os.getenv('CORS_ORIGINS', '').split(',') if os.getenv('CORS_ORIGINS') else ['*']
+
+    # OAuth redirect URI for Authorization Code Flow (override in .env if needed)
+    SPOTIFY_REDIRECT_URI = os.getenv('SPOTIFY_REDIRECT_URI', 'http://127.0.0.1:5001/auth/callback')
     
     # Logging
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')

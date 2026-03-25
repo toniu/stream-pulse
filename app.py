@@ -7,14 +7,15 @@ Version: 2.0.0
 """
 
 import os
-from flask import Flask, render_template, request, jsonify
+import requests
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_cors import CORS
 
 from config import get_config
 from logger import setup_logging, get_logger
 from error_handlers import register_error_handlers
 from middleware import setup_security, rate_limit
-from services import SpotifyService, AnalysisService
+from services import SpotifyService, AnalysisService, FlowService
 
 # Initialize logger
 logger = get_logger(__name__)
@@ -57,6 +58,9 @@ def create_app(config_name=None):
     
     # Register routes
     register_routes(app, spotify_service)
+
+    # Ensure session secret
+    app.secret_key = app.config.get('SECRET_KEY')
     
     # Disable caching in development mode for live reload
     if app.config['DEBUG']:
@@ -82,154 +86,369 @@ def create_app(config_name=None):
 
 
 def register_routes(app, spotify_service):
-    """
-    Register all application routes
-    
-    Args:
-        app: Flask application
-        spotify_service: SpotifyService instance
-    """
+    """Register all application routes"""
     
     @app.route('/')
     def index():
         """Render landing page"""
-        return render_template('index_improved.html')
+        return render_template('index.html')
+
+    @app.route('/demo/timeline')
+    def demo_timeline():
+        """Render the demo energy timeline (static React+D3)"""
+        return render_template('demo_timeline.html')
     
     @app.route('/results')
     def results():
         """Render results page"""
-        return render_template('results_improved.html')
+        return render_template('results.html')
     
-    @app.route('/api/v1/analyze', methods=['POST'])
+    @app.route('/api/v1/analyze-flow', methods=['POST'])
     @rate_limit
-    def analyze_playlist():
+    def analyze_flow():
         """
-        API endpoint to analyze a Spotify playlist
-        
-        Request JSON:
-            {
-                "playlist_url": "https://open.spotify.com/playlist/..."
-            }
-            
-        Response JSON:
-            {
-                "success": true,
-                "playlist_name": "...",
-                "playlist_image": "...",
-                "track_count": 50,
-                "tracks": [...],
-                "ratings": {...},
-                "popular_genres": [...],
-                "recommendations": [...]
-            }
+        Playlist Flow Doctor endpoint.
+        Analyses every track-to-track transition, scores flow,
+        flags rough spots, and returns bridge-track targets.
         """
         try:
-            # Validate request
             data = request.get_json()
             if not data:
                 raise ValueError("Request body must be JSON")
-            
+
             playlist_url = data.get('playlist_url', '').strip()
-            purpose = data.get('purpose', 'general').strip()
-            
-            logger.debug(f"Received request to analyze playlist with URL: {playlist_url} and purpose: {purpose}")
-
             if not playlist_url:
-                logger.warning("No playlist URL provided in the request")
                 raise ValueError("Playlist URL is required")
-
-            if not spotify_service.is_valid_playlist_url(playlist_url):
-                logger.warning(f"Invalid playlist URL provided: {playlist_url}")
-                raise ValueError("Invalid playlist URL")
-            
-            # Get playlist purpose (default to 'general')
-            valid_purposes = ['general', 'party', 'workout', 'focus', 'discovery', 'background', 'roadtrip']
-            if purpose not in valid_purposes:
-                logger.warning(f"Invalid purpose '{purpose}', defaulting to 'general'")
-                purpose = 'general'
-            
-            # Validate URL format
             if not spotify_service.validate_playlist_url(playlist_url):
                 raise ValueError("Invalid Spotify playlist URL format")
-            
-            logger.info(f"Analyzing playlist: {playlist_url}")
-            
+
+            logger.info(f"Flow analysis: {playlist_url}")
+
             # Fetch playlist data
             playlist_name, playlist_image, track_info, artist_ids = \
                 spotify_service.fetch_playlist_data(playlist_url)
-            
+
             if not track_info:
                 raise ValueError("No tracks found in playlist")
-            
-            # Check playlist size limit
+
             max_size = app.config.get('MAX_PLAYLIST_SIZE', 1000)
             if len(track_info) > max_size:
-                logger.warning(f"Playlist exceeds max size: {len(track_info)} tracks")
                 track_info = track_info[:max_size]
-                artist_ids = {aid for track in track_info for artist in track.get('artist_info', []) for aid in [artist['id']]}
-            
-            # Batch fetch artist genres
-            logger.debug(f"Fetching genres for {len(artist_ids)} artists")
-            genre_cache = spotify_service.batch_fetch_artist_genres(artist_ids)
-            
-            # Fetch audio features for flow analysis
-            logger.debug(f"Fetching audio features for {len(track_info)} tracks")
+
+            # Batch fetch audio features (includes key/mode now)
             audio_features = spotify_service.batch_fetch_audio_features(track_info)
-            
-            # Attach audio features to track info
+            logger.info(f"Audio features fetched for {len(audio_features)} tracks")
+            # If fetching audio features failed entirely, proceed with neutral defaults
+            if not audio_features:
+                logger.warning("No audio features returned; proceeding with neutral defaults")
             for track in track_info:
-                spotify_url = track.get('spotify_url')
-                if spotify_url and spotify_url in audio_features:
-                    track['audio_features'] = audio_features[spotify_url]
-            
-            # Calculate ratings with context awareness
-            ratings = AnalysisService.calculate_ratings(track_info, genre_cache, purpose)
-            
-            # Get popular genres
-            popular_genres = AnalysisService.get_popular_genres(track_info, genre_cache)
-            
-            # Generate recommendations
-            recommendations = spotify_service.get_recommendations(track_info, genre_cache)
-            
-            # Prepare response
+                url = track.get('spotify_url')
+                if url and url in audio_features:
+                    track['audio_features'] = audio_features[url]
+                else:
+                    logger.debug(f"No audio features for track '{track.get('name')}' (url={url})")
+
+            # Log a small sample for debugging
+            sample_with = [t for t in track_info if t.get('audio_features')]
+            sample_without = [t for t in track_info if not t.get('audio_features')]
+            logger.info(f"Tracks with features: {len(sample_with)}; without: {len(sample_without)}")
+            if sample_with:
+                logger.debug(f"Sample features (first): {sample_with[0].get('audio_features')}")
+
+            # Flow analysis
+            transitions = FlowService.analyse_transitions(track_info)
+            flow_score = FlowService.playlist_flow_score(transitions)
+            summary = FlowService.flow_summary(transitions)
+            timeline = FlowService.flow_timeline(track_info, transitions)
+
+            # Compute bridge targets for rough transitions
+            bridge_data = []
+            for t in summary['roughest']:
+                if t['verdict'] == 'rough':
+                    targets = FlowService.bridge_targets(
+                        track_info[t['from_idx']], track_info[t['to_idx']]
+                    )
+                    bridge_data.append({
+                        'from_idx': t['from_idx'],
+                        'to_idx': t['to_idx'],
+                        'from_track': t['from_track'],
+                        'to_track': t['to_track'],
+                        'score': t['score'],
+                        'targets': targets,
+                    })
+
             response = {
                 'success': True,
                 'playlist_name': playlist_name,
                 'playlist_image': playlist_image,
                 'track_count': len(track_info),
-                'purpose': purpose,
                 'tracks': track_info,
-                'ratings': ratings,
-                'popular_genres': popular_genres,
-                'recommendations': recommendations
+                'flow_score': flow_score,
+                'transitions': transitions,
+                'summary': summary,
+                'timeline': timeline,
+                'bridge_data': bridge_data,
             }
-            
-            logger.info(f"Analysis complete - {len(track_info)} tracks, rating: {ratings['overall_rating']}%")
+
+            logger.info(
+                f"Flow analysis complete — {len(track_info)} tracks, "
+                f"score {flow_score}/100, {summary['rough_count']} rough transitions"
+            )
             return jsonify(response), 200
-            
+
         except ValueError as e:
             logger.warning(f"Validation error: {str(e)}")
             return jsonify({
-                'success': False,
-                'error': 'Invalid input',
-                'message': str(e)
+                'success': False, 'error': 'Invalid input', 'message': str(e)
             }), 400
-        
         except Exception as e:
-            logger.error(f"Analysis error: {str(e)}", exc_info=True)
+            logger.error(f"Flow analysis error: {str(e)}", exc_info=True)
             return jsonify({
-                'success': False,
-                'error': 'Analysis failed',
+                'success': False, 'error': 'Analysis failed',
                 'message': 'An error occurred while analyzing the playlist'
             }), 500
-    
-    # Legacy endpoint for backward compatibility
-    @app.route('/analyse', methods=['POST'])
+
+    # NOTE: temporary debug endpoints removed — restoring original behavior
+
+    @app.route('/auth/login')
+    def auth_login():
+        """Redirect user to Spotify to begin Authorization Code Flow"""
+        client_id = app.config.get('SPOTIFY_CLIENT_ID')
+        redirect_uri = app.config.get('SPOTIFY_REDIRECT_URI')
+        scope = 'user-read-private'
+        params = {
+            'client_id': client_id,
+            'response_type': 'code',
+            'redirect_uri': redirect_uri,
+            'scope': scope,
+            'show_dialog': 'true'
+        }
+        auth_url = 'https://accounts.spotify.com/authorize'
+        from urllib.parse import urlencode
+        return redirect(f"{auth_url}?{urlencode(params)}")
+
+    @app.route('/auth/callback')
+    def auth_callback():
+        """Handle Spotify redirect and exchange code for user access token"""
+        code = request.args.get('code')
+        error = request.args.get('error')
+        if error:
+            return jsonify({'success': False, 'error': error}), 400
+        if not code:
+            return jsonify({'success': False, 'error': 'missing_code'}), 400
+
+        token_url = 'https://accounts.spotify.com/api/token'
+        redirect_uri = app.config.get('SPOTIFY_REDIRECT_URI')
+        client_id = app.config.get('SPOTIFY_CLIENT_ID')
+        client_secret = app.config.get('SPOTIFY_CLIENT_SECRET')
+
+        resp = requests.post(
+            token_url,
+            data={'grant_type': 'authorization_code', 'code': code, 'redirect_uri': redirect_uri},
+            auth=(client_id, client_secret),
+            timeout=10
+        )
+        try:
+            body = resp.json()
+        except Exception:
+            body = resp.text
+
+        if resp.status_code != 200:
+            return jsonify({'success': False, 'status': resp.status_code, 'body': body}), 400
+
+        # Store user token in session for subsequent probes
+        session['user_access_token'] = body.get('access_token')
+        session['user_refresh_token'] = body.get('refresh_token')
+        session.permanent = True
+
+        return jsonify({'success': True, 'message': 'Authorization successful; user token stored in session'}), 200
+
+    @app.route('/debug/audio-features-raw', methods=['POST', 'GET'])
+    def debug_audio_features_raw():
+        """
+        Minimal raw probe: exchanges client credentials for an access token
+        and calls Spotify's /v1/audio-features for provided track ids or a playlist.
+        POST JSON: { "track_ids": ["id1","id2"], "playlist_url": "..." }
+        If playlist_url is provided, it will be used to extract up to 50 track ids.
+        Returns token response, audio-features status, headers (subset), and body.
+        """
+        try:
+            if request.method == 'POST':
+                data = request.get_json() or {}
+                track_ids = data.get('track_ids') or []
+                playlist_url = data.get('playlist_url')
+            else:
+                # GET: accept playlist_url or track_ids query param (comma-separated)
+                track_ids_param = request.args.get('track_ids')
+                playlist_url = request.args.get('playlist_url')
+                track_ids = track_ids_param.split(',') if track_ids_param else []
+
+            if playlist_url:
+                # Validate and fetch playlist tracks via existing spotify_service
+                if not spotify_service.validate_playlist_url(playlist_url):
+                    return jsonify({'success': False, 'error': 'invalid playlist url'}), 400
+                _, _, track_info, _ = spotify_service.fetch_playlist_data(playlist_url)
+                # extract up to 50 ids
+                for t in track_info:
+                    if len(track_ids) >= 50:
+                        break
+                    url = t.get('spotify_url')
+                    if url:
+                        tid = url.split('/')[-1].split('?')[0]
+                        track_ids.append(tid)
+
+            if not track_ids:
+                return jsonify({'success': False, 'error': 'no track_ids provided or found'}), 400
+
+            # Prefer a user access token from session (Authorization Code Flow)
+            access_token = session.get('user_access_token')
+            token_body = None
+            token_status = None
+            if access_token:
+                headers = {'Authorization': f'Bearer {access_token}'}
+                token_status = 'session'
+                token_body = {'from': 'session'}
+                token_resp = None
+            else:
+                # Fall back to client credentials exchange
+                token_url = 'https://accounts.spotify.com/api/token'
+                auth = (app.config.get('SPOTIFY_CLIENT_ID'), app.config.get('SPOTIFY_CLIENT_SECRET'))
+                token_resp = requests.post(
+                    token_url,
+                    data={'grant_type': 'client_credentials'},
+                    auth=auth,
+                    timeout=10
+                )
+                try:
+                    token_body = token_resp.json()
+                except Exception:
+                    token_body = token_resp.text
+                token_status = token_resp.status_code
+                if token_resp.status_code != 200:
+                    return jsonify({'success': False, 'token_status': token_resp.status_code, 'token_body': token_body}), 200
+                access_token = token_body.get('access_token')
+                headers = {'Authorization': f'Bearer {access_token}'}
+
+            ids_param = ','.join(track_ids[:50])
+            af_url = f'https://api.spotify.com/v1/audio-features?ids={ids_param}'
+            af_resp = requests.get(af_url, headers=headers, timeout=15)
+
+            # Prepare a compact headers map to return (avoid secrets)
+            resp_headers = {k: v for k, v in af_resp.headers.items() if k.lower() in ('content-type', 'cache-control', 'pragma', 'www-authenticate', 'ratelimit-remaining', 'ratelimit-reset', 'retry-after')}
+
+            af_body = None
+            try:
+                af_body = af_resp.json()
+            except Exception:
+                af_body = af_resp.text
+
+            return jsonify({
+                'success': True,
+                'token_status': token_status,
+                'token_body': token_body,
+                'audio_features_status': af_resp.status_code,
+                'audio_features_headers': resp_headers,
+                'audio_features_body': af_body
+            }), 200
+
+        except Exception as e:
+            logger.error(f"debug audio-features-raw error: {str(e)}", exc_info=True)
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/debug/whoami')
+    def debug_whoami():
+        """Call Spotify /v1/me using the session user token to verify it's valid."""
+        try:
+            access_token = session.get('user_access_token')
+            if not access_token:
+                return jsonify({'success': False, 'error': 'no user token in session'}), 400
+            headers = {'Authorization': f'Bearer {access_token}'}
+            resp = requests.get('https://api.spotify.com/v1/me', headers=headers, timeout=10)
+            try:
+                body = resp.json()
+            except Exception:
+                body = resp.text
+            return jsonify({'success': True, 'status': resp.status_code, 'body': body}), 200
+        except Exception as e:
+            logger.error(f"whoami probe failed: {str(e)}", exc_info=True)
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/v1/auto-smooth', methods=['POST'])
     @rate_limit
-    def analyse_legacy():
-        """Legacy endpoint - redirects to new API"""
-        return analyze_playlist()
-    
+    def auto_smooth():
+        """Return an auto-smoothed track order."""
+        try:
+            data = request.get_json()
+            if not data:
+                raise ValueError("Request body must be JSON")
+            tracks = data.get('tracks', [])
+            if not tracks:
+                raise ValueError("Tracks list is required")
+
+            order = FlowService.auto_smooth(tracks)
+            return jsonify({'success': True, 'order': order}), 200
+
+        except ValueError as e:
+            return jsonify({'success': False, 'error': str(e)}), 400
+        except Exception as e:
+            logger.error(f"Auto-smooth error: {str(e)}", exc_info=True)
+            return jsonify({'success': False, 'error': 'Auto-smooth failed'}), 500
+
+    @app.route('/api/v1/analyze', methods=['POST'])
+    @rate_limit
+    def analyze():
+        """Lightweight analyze endpoint for prototyping UI.
+
+        Expects JSON: { "tracks": [ { "tempo":.., "energy":.., "valence":.., "danceability":.., "key":.., "mode":.. }, ... ] }
+        Returns: { "success": True, "transition_scores": [...], "playlist_score": float }
+        """
+        try:
+            data = request.get_json()
+            if not data:
+                raise ValueError("Request body must be JSON")
+            tracks = data.get('tracks')
+            if not tracks or not isinstance(tracks, list):
+                raise ValueError("'tracks' must be a non-empty list")
+
+            # Import here to avoid circular imports at module load
+            from services import flow_scoring
+
+            result = flow_scoring.playlist_score(tracks)
+            return jsonify({'success': True, **result}), 200
+
+        except ValueError as e:
+            return jsonify({'success': False, 'error': str(e)}), 400
+        except Exception as e:
+            logger.error(f"Analyze endpoint error: {str(e)}", exc_info=True)
+            return jsonify({'success': False, 'error': 'Analyze failed'}), 500
+
+    @app.route('/api/v1/bridge-recommendations', methods=['POST'])
+    @rate_limit
+    def bridge_recommendations():
+        """Get Spotify recommendations for a bridge track between two songs."""
+        try:
+            data = request.get_json()
+            if not data:
+                raise ValueError("Request body must be JSON")
+
+            targets = data.get('targets', {})
+            seed_track_ids = data.get('seed_track_ids', [])
+            existing_names = set(data.get('existing_names', []))
+
+            if not targets or not seed_track_ids:
+                raise ValueError("targets and seed_track_ids are required")
+
+            recs = spotify_service.get_bridge_recommendations(
+                targets, seed_track_ids, existing_names, limit=5
+            )
+            return jsonify({'success': True, 'recommendations': recs}), 200
+
+        except ValueError as e:
+            return jsonify({'success': False, 'error': str(e)}), 400
+        except Exception as e:
+            logger.error(f"Bridge rec error: {str(e)}", exc_info=True)
+            return jsonify({'success': False, 'error': 'Recommendation failed'}), 500
+
     @app.route('/api/v1/youtube-search', methods=['POST'])
     @rate_limit
     def youtube_search():
@@ -247,11 +466,9 @@ def register_routes(app, spotify_service):
             if not track_name or not artist_name:
                 raise ValueError("track_name and artist_name are required")
             
-            # Clean up names for better search
             clean_track = track_name.replace('(', '').replace(')', '').replace('[', '').replace(']', '')
             clean_artist = artist_name.replace('(', '').replace(')', '')
             
-            # Search YouTube with optimized query
             search_query = f"ytsearch1:{clean_track} {clean_artist} official audio"
             logger.info(f"Searching YouTube: {search_query}")
             
@@ -270,15 +487,12 @@ def register_routes(app, spotify_service):
                     video_id = video.get('id')
                     video_title = video.get('title', 'Unknown')
                     
-                    logger.info(f"Found video: {video_title} (ID: {video_id})")
-                    
                     return jsonify({
                         'success': True,
                         'video_id': video_id,
                         'video_title': video_title
                     }), 200
                 else:
-                    logger.warning(f"No YouTube results for: {search_query}")
                     return jsonify({
                         'success': False,
                         'error': 'No results found'

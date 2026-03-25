@@ -21,3 +21,47 @@ The program also gives extra recommendations of songs based on the user's playli
 ![output-2](screenshots/output-result.png)
 ![output-3](screenshots/output-recommend.png)
 
+## Development
+
+Quick commands to run the app locally (macOS / Linux):
+
+1. Create and activate the Python virtualenv, install Python deps, and install frontend deps:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+cd frontend && npm install && cd -
+```
+
+2. Start both the Next.js frontend and the Flask backend (root `package.json` has a `dev` script that uses `concurrently`):
+
+```bash
+# from project root
+npm install   # ensure dev deps (concurrently) are installed
+npm run dev
+```
+
+If you prefer to start the backend manually, use the helper script:
+
+```bash
+./scripts/start-backend.sh
+```
+
+3. Run tests:
+
+```bash
+source venv/bin/activate
+python -m pytest -q
+```
+
+4. If port 5001 is in use, free it with the included helper:
+
+```bash
+./clean-port.sh 5001
+```
+
+Notes:
+- The Next.js dev server runs on port 3000 and proxies API requests to the Flask backend on port 5001.
+- Ensure `.env` contains `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` for endpoints that call Spotify.
+

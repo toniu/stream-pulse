@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pyAux - Spotify Playlist Analyser</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Background animated equaliser bars -->
+    <div class="equaliser-background">
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+    </div>
+
+    <!-- Main container -->
+    <div class="container">
+        <!-- Header section with logo and title -->
+        <header class="header">
+            <div class="logo-container">
+                <div class="vinyl-logo"></div>
+                <h1 class="title">py<span class="highlight">Aux</span></h1>
+            </div>
+            <p class="subtitle">Analyse and rate your Spotify playlists</p>
+        </header>
+
+        <!-- Main input form section -->
+        <main class="main-content">
+            <div class="input-section">
+                <form id="analyseForm">
+                    <!-- Glowing input field for playlist URL -->
+                    <div class="input-wrapper">
+                        <input 
+                            type="text" 
+                            id="playlistUrl" 
+                            name="playlistUrl" 
+                            placeholder="Enter Spotify playlist URL..."
+                            required
+                            autocomplete="off"
+                            spellcheck="false"
+                        >
+                        <div class="input-glow"></div>
+                    </div>
+
+                    <!-- Submit button with hover effect -->
+                    <button type="submit" class="analyse-btn" id="analyseBtn">
+                        <span class="btn-text">Analyse Playlist</span>
+                        <div class="btn-glow"></div>
+                    </button>
+                </form>
+
+                <!-- Error message display -->
+                <div id="errorMessage" class="error-message"></div>
+
+                <!-- Loading animation -->
+                <div id="loadingAnimation" class="loading-container">
+                    <div class="loading-spinner">
+                        <div class="spinner-ring"></div>
+                        <div class="spinner-ring"></div>
+                        <div class="spinner-ring"></div>
+                    </div>
+                    <p class="loading-text">Analysing your playlist...</p>
+                    <div class="loading-wave">
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature cards explaining the analysis -->
+            <div class="features">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7z" fill="#1DB954"/>
+                            <path d="M9 9h6v6H9z" fill="#1DB954"/>
+                        </svg>
+                    </div>
+                    <h3>Artist Diversity</h3>
+                    <p>Analyses unique artists vs. total tracks to evaluate variety</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z" fill="#1DB954"/>
+                            <circle cx="12" cy="14" r="2" fill="#1DB954"/>
+                        </svg>
+                    </div>
+                    <h3>Genre Cohesion</h3>
+                    <p>Measures how focused your playlist is on specific genres</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" fill="#1DB954"/>
+                        </svg>
+                    </div>
+                    <h3>Popularity Balance</h3>
+                    <p>Evaluates the mix of popular and underground tracks</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" fill="#1DB954"/>
+                        </svg>
+                    </div>
+                    <h3>Smart Recommendations</h3>
+                    <p>Get personalised track suggestions to improve your playlist</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Powered by Spotify API &copy; 2026 pyAux</p>
+        </footer>
+    </div>
+
+    <!-- JavaScript for functionality -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

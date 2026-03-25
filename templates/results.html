@@ -3,178 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Results - pyAux</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Flow Results — pyAux</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <meta name="theme-color" content="#0a0a0f">
 </head>
-<body class="results-page">
-    <!-- Background animated equaliser -->
-    <div class="equaliser-background">
-        <div class="eq-bar"></div>
-        <div class="eq-bar"></div>
-        <div class="eq-bar"></div>
-        <div class="eq-bar"></div>
-        <div class="eq-bar"></div>
-        <div class="eq-bar"></div>
-        <div class="eq-bar"></div>
-        <div class="eq-bar"></div>
-    </div>
+<body class="results-body">
+    <div class="page-wrapper">
+        <!-- Background orbs -->
+        <div class="bg-orbs" aria-hidden="true">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+            <div class="orb orb-3"></div>
+        </div>
 
-    <!-- Main results container -->
-    <div class="container">
-        <!-- Header with back button -->
-        <header class="header results-header">
-            <a href="/" class="back-btn">← Back to Home</a>
-            <div class="logo-container">
-                <h1 class="title">py<span class="highlight">Aux</span></h1>
+        <!-- Top bar -->
+        <nav class="top-bar">
+            <a href="/" class="back-link">&larr; New playlist</a>
+            <span class="top-brand">Flow Doctor</span>
+        </nav>
+
+        <!-- Hero: playlist info + big score -->
+        <header id="hero" class="results-hero">
+            <img id="playlist-cover" class="cover" src="" alt="Playlist cover" hidden>
+            <div class="hero-text">
+                <h1 id="playlist-name" class="playlist-title"></h1>
+                <p id="playlist-meta" class="playlist-meta"></p>
+            </div>
+            <div class="score-ring" id="score-ring" aria-label="Flow score">
+                <svg viewBox="0 0 120 120" class="ring-svg">
+                    <circle cx="60" cy="60" r="52" class="ring-bg"/>
+                    <circle cx="60" cy="60" r="52" class="ring-fg" id="ring-fg"
+                            stroke-dasharray="326.73" stroke-dashoffset="326.73"/>
+                </svg>
+                <div class="score-value">
+                    <span id="score-number" class="score-num">--</span>
+                    <span class="score-label">Flow</span>
+                </div>
             </div>
         </header>
 
-        <!-- Results content area -->
-        <main class="results-content" id="resultsContent">
-            <!-- Loading state (shown initially) -->
-            <div id="resultsLoading" class="loading-container">
-                <div class="loading-spinner">
-                    <div class="spinner-ring"></div>
-                    <div class="spinner-ring"></div>
-                    <div class="spinner-ring"></div>
+        <!-- Summary pills -->
+        <section class="summary-pills" aria-label="Flow summary">
+            <div class="pill pill-smooth">
+                <span class="pill-count" id="smooth-count">0</span>
+                <span class="pill-label">Smooth</span>
+            </div>
+            <div class="pill pill-ok">
+                <span class="pill-count" id="ok-count">0</span>
+                <span class="pill-label">OK</span>
+            </div>
+            <div class="pill pill-rough">
+                <span class="pill-count" id="rough-count">0</span>
+                <span class="pill-label">Rough</span>
+            </div>
+        </section>
+
+        <!-- Tabs -->
+        <nav class="tabs" role="tablist" aria-label="Result sections">
+            <button class="tab active" role="tab" aria-selected="true"  data-tab="flow-map">Flow Map</button>
+            <button class="tab"        role="tab" aria-selected="false" data-tab="transitions">Transitions</button>
+            <button class="tab"        role="tab" aria-selected="false" data-tab="tracks">Tracks</button>
+            <button class="tab"        role="tab" aria-selected="false" data-tab="auto-smooth">Auto-Smooth</button>
+        </nav>
+
+        <!-- Tab panels -->
+        <main class="tab-panels">
+
+            <!-- FLOW MAP -->
+            <section id="panel-flow-map" class="panel active" role="tabpanel">
+                <div class="chart-container">
+                    <canvas id="flow-chart" aria-label="Playlist flow chart"></canvas>
                 </div>
-                <p class="loading-text">Loading results...</p>
-            </div>
+                <div class="chart-legend" id="chart-legend">
+                    <button class="legend-chip active" data-series="energy">Energy</button>
+                    <button class="legend-chip active" data-series="valence">Mood</button>
+                    <button class="legend-chip"        data-series="danceability">Dance</button>
+                    <button class="legend-chip"        data-series="tempo">Tempo</button>
+                </div>
+            </section>
 
-            <!-- Error state -->
-            <div id="resultsError" class="error-container" style="display: none;">
-                <div class="error-icon">⚠️</div>
-                <h2>Oops! Something went wrong</h2>
-                <p class="error-text"></p>
-                <a href="/" class="analyse-btn">Try Again</a>
-            </div>
+            <!-- TRANSITIONS -->
+            <section id="panel-transitions" class="panel" role="tabpanel" hidden>
+                <div class="transitions-header">
+                    <h2>All Transitions</h2>
+                    <div class="filter-row">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn" data-filter="rough">Rough</button>
+                        <button class="filter-btn" data-filter="ok">OK</button>
+                        <button class="filter-btn" data-filter="smooth">Smooth</button>
+                    </div>
+                </div>
+                <ul id="transition-list" class="transition-list"></ul>
+            </section>
 
-            <!-- Success state (populated by JavaScript) -->
-            <div id="resultsData" style="display: none;">
-                <!-- Playlist header -->
-                <section class="playlist-header">
-                    <h2 id="playlistName">Playlist Name</h2>
-                    <p class="track-count"><span id="trackCount">0</span> tracks analysed</p>
-                </section>
+            <!-- TRACKS -->
+            <section id="panel-tracks" class="panel" role="tabpanel" hidden>
+                <div class="tracks-header">
+                    <input type="search" id="track-search" class="track-search" placeholder="Search tracks...">
+                </div>
+                <ul id="track-list" class="track-list"></ul>
+            </section>
 
-                <!-- Overall rating display -->
-                <section class="overall-rating">
-                    <h3>Overall Rating</h3>
-                    <div class="rating-circle">
-                        <svg class="circle-svg" viewBox="0 0 200 200">
-                            <circle class="circle-bg" cx="100" cy="100" r="85"></circle>
-                            <circle class="circle-progress" cx="100" cy="100" r="85" id="overallCircle"></circle>
-                        </svg>
-                        <div class="rating-value">
-                            <span id="overallRating">0</span>
-                            <span class="rating-suffix">/100</span>
+            <!-- AUTO-SMOOTH -->
+            <section id="panel-auto-smooth" class="panel" role="tabpanel" hidden>
+                <div class="smooth-intro">
+                    <p>Reorder your playlist to minimise transition friction using a nearest-neighbour algorithm.</p>
+                    <button id="smooth-btn" class="analyse-btn">
+                        <span class="btn-text">Auto-Smooth Playlist</span>
+                        <span class="btn-icon">⟳</span>
+                    </button>
+                </div>
+                <div id="smooth-result" class="smooth-result" hidden>
+                    <div class="smooth-score-compare">
+                        <div class="compare-item">
+                            <span class="compare-label">Original</span>
+                            <span class="compare-value" id="original-score">--</span>
+                        </div>
+                        <div class="compare-arrow">&rarr;</div>
+                        <div class="compare-item">
+                            <span class="compare-label">Smoothed</span>
+                            <span class="compare-value" id="smoothed-score">--</span>
                         </div>
                     </div>
-                </section>
-
-                <!-- Individual ratings breakdown -->
-                <section class="ratings-breakdown">
-                    <h3>Detailed Breakdown</h3>
-                    <div class="rating-bars">
-                        <!-- Artist Diversity -->
-                        <div class="rating-item">
-                            <div class="rating-label">
-                                <span>Artist Diversity</span>
-                                <span class="rating-score" id="artistScore">0%</span>
-                            </div>
-                            <div class="rating-bar-container">
-                                <div class="rating-bar-fill" id="artistBar"></div>
-                            </div>
-                        </div>
-
-                        <!-- Genre Cohesion -->
-                        <div class="rating-item">
-                            <div class="rating-label">
-                                <span>Genre Cohesion</span>
-                                <span class="rating-score" id="genreScore">0%</span>
-                            </div>
-                            <div class="rating-bar-container">
-                                <div class="rating-bar-fill" id="genreBar"></div>
-                            </div>
-                        </div>
-
-                        <!-- Popularity Balance -->
-                        <div class="rating-item">
-                            <div class="rating-label">
-                                <span>Popularity Balance</span>
-                                <span class="rating-score" id="popularityScore">0%</span>
-                            </div>
-                            <div class="rating-bar-container">
-                                <div class="rating-bar-fill" id="popularityBar"></div>
-                            </div>
-                        </div>
-
-                        <!-- Playlist Length -->
-                        <div class="rating-item">
-                            <div class="rating-label">
-                                <span>Playlist Length</span>
-                                <span class="rating-score" id="lengthScore">0%</span>
-                            </div>
-                            <div class="rating-bar-container">
-                                <div class="rating-bar-fill" id="lengthBar"></div>
-                            </div>
-                        </div>
-
-                        <!-- Era Diversity -->
-                        <div class="rating-item">
-                            <div class="rating-label">
-                                <span>Era Diversity</span>
-                                <span class="rating-score" id="eraScore">0%</span>
-                            </div>
-                            <div class="rating-bar-container">
-                                <div class="rating-bar-fill" id="eraBar"></div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Popular genres section -->
-                <section class="genres-section">
-                    <h3>Popular Genres</h3>
-                    <div class="genres-list" id="genresList">
-                        <!-- Populated by JavaScript -->
-                    </div>
-                </section>
-
-                <!-- Tracks list section -->
-                <section class="tracks-section">
-                    <h3>Playlist Tracks</h3>
-                    <div class="tracks-controls">
-                        <button class="toggle-btn" id="toggleTracks">Show All Tracks</button>
-                    </div>
-                    <div class="tracks-list" id="tracksList" style="display: none;">
-                        <!-- Populated by JavaScript -->
-                    </div>
-                </section>
-
-                <!-- Recommendations section -->
-                <section class="recommendations-section">
-                    <h3>Recommended Tracks</h3>
-                    <p class="section-subtitle">Add these tracks to improve your playlist rating</p>
-                    <div class="recommendations-list" id="recommendationsList">
-                        <!-- Populated by JavaScript -->
-                    </div>
-                </section>
-
-                <!-- Action buttons -->
-                <section class="actions">
-                    <a href="/" class="analyse-btn">Analyse Another Playlist</a>
-                </section>
-            </div>
+                    <ul id="smooth-track-list" class="track-list"></ul>
+                </div>
+            </section>
         </main>
 
-        <!-- Footer -->
+        <!-- Bridge track modal -->
+        <div id="bridge-modal" class="modal-overlay" hidden>
+            <div class="modal" role="dialog" aria-label="Bridge track recommendations">
+                <button class="modal-close" id="modal-close">&times;</button>
+                <h3 class="modal-title">Bridge Track Suggestions</h3>
+                <p class="modal-subtitle" id="bridge-context"></p>
+                <div id="bridge-loading" class="bridge-loading" hidden>
+                    <div class="spinner-small"></div>
+                    <span>Finding bridge tracks...</span>
+                </div>
+                <ul id="bridge-list" class="bridge-list"></ul>
+            </div>
+        </div>
+
         <footer class="footer">
-            <p>Powered by Spotify API &copy; 2026 pyAux</p>
+            <p>pyAux &middot; Playlist Flow Doctor</p>
         </footer>
     </div>
 
-    <!-- JavaScript for results rendering -->
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="/static/js/results.js"></script>
 </body>
 </html>

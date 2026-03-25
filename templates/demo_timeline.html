@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Playlist Energy Timeline — Demo</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    /* keep compact styling consistent with project */
+    .demo-container{max-width:980px;margin:18px auto;padding:12px}
+    .controls{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+    .chart{border:1px solid #eee;padding:8px;background:#fff}
+    .info{margin-top:12px;font-size:14px}
+    button{padding:6px 10px;border-radius:6px;border:1px solid #ccc;background:#f8f8f8}
+  </style>
+</head>
+<body>
+  <div class="demo-container">
+    <h2>Playlist Energy Timeline — Demo</h2>
+    <p>Click <strong>Analyze sample</strong> to POST mock audio-features to the local analyze endpoint and render energy + valence.</p>
+
+    <div class="controls">
+      <button id="analyzeBtn">Analyze sample</button>
+      <select id="sampleSelect">
+        <option value="default">Default sample (mixed)</option>
+        <option value="smooth">Smooth playlist</option>
+        <option value="jumpy">Jumpy playlist</option>
+      </select>
+      <span id="status" style="margin-left:auto;color:#666">idle</span>
+    </div>
+
+    <div id="chart" class="chart"></div>
+
+    <div class="info" id="info"></div>
+  </div>
+
+  <!-- Lightweight React + D3 via jsDelivr (matches server CSP) -->
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+
+  <script>
+  (function(){
+    const chart = d3.select('#chart')
+    const status = document.getElementById('status')
+    const info = document.getElementById('info')
+    const analyzeBtn = document.getElementById('analyzeBtn')
+    const sampleSelect = document.getElementById('sampleSelect')
+
+    function makeSample(type){
+      if(type==='smooth'){
+        return [80,82,84,85,86,88,90,92,94,96].map((t,i)=>({tempo:t,energy:0.5+0.03*i,valence:0.5+0.02*i,danceability:0.5,key: (i%12),mode:1}))
+      }
+      if(type==='jumpy'){
+        return [100,150,90,170,85,140,80].map((t,i)=>({tempo:t,energy:Math.random()*0.6+0.2,valence:Math.random(),danceability:Math.random(),key:(i*3)%12,mode:i%2}))
+      }
+      // default mixed
+      return [100,102,98,150,152,148,120,122,60,62].map((t,i)=>({tempo:t,energy:0.4+0.05*(i%3),valence:0.5+0.03*(i%4),danceability:0.4+0.05*(i%2),key:(i*2)%12,mode:1}))
+    }
+
+    function renderResult(tracks, result){
+      const w = 920, h = 240, margin = {top:12,right:20,bottom:28,left:36}
+      chart.selectAll('*').remove()
+      const svg = chart.append('svg').attr('width', w).attr('height', h)
+      const innerW = w - margin.left - margin.right
+      const innerH = h - margin.top - margin.bottom
+      const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`)
+
+      const n = tracks.length
+      const x = d3.scaleLinear().domain([0,n-1]).range([0,innerW])
+      const y = d3.scaleLinear().domain([0,1]).range([innerH,0])
+
+      // lines for energy and valence
+      const lineEnergy = d3.line().x((d,i)=>x(i)).y(d=>y(d.energy)).curve(d3.curveMonotoneX)
+      const lineVal = d3.line().x((d,i)=>x(i)).y(d=>y(d.valence)).curve(d3.curveMonotoneX)
+
+      g.append('path').datum(tracks).attr('d', lineEnergy).attr('fill','none').attr('stroke','#e6550d').attr('stroke-width',2)
+      g.append('path').datum(tracks).attr('d', lineVal).attr('fill','none').attr('stroke','#3182bd').attr('stroke-width',2)
+
+      // dots
+      g.selectAll('.dot').data(tracks).enter().append('circle').attr('cx',(d,i)=>x(i)).attr('cy',d=>y(d.energy)).attr('r',4).attr('fill','#e6550d')
+      g.selectAll('.dotv').data(tracks).enter().append('circle').attr('cx',(d,i)=>x(i)).attr('cy',d=>y(d.valence)).attr('r',3).attr('fill','#3182bd')
+
+      // x axis
+      const xAxis = d3.axisBottom(x).ticks(Math.min(n,10)).tickFormat(i=>i+1)
+      const yAxis = d3.axisLeft(y).ticks(4)
+      g.append('g').attr('transform', `translate(0,${innerH})`).call(xAxis)
+      g.append('g').call(yAxis)
+
+      // annotate rough transitions
+      const scores = result.transition_scores || []
+      const roughIdx = []
+      scores.forEach((s,i)=>{ if(s<50) roughIdx.push(i) })
+      roughIdx.forEach(i=>{
+        g.append('rect').attr('x', x(i)+4).attr('y',0).attr('width', Math.max(8, (innerW/(n||1))*0.8)).attr('height', innerH).attr('fill','#fcebea').attr('opacity',0.6)
+      })
+
+      info.innerHTML = `<strong>Playlist score:</strong> ${result.playlist_score.toFixed(1)} / 100` +
+        `<br><strong>Transitions:</strong> ${scores.length} (rough: ${roughIdx.length})` +
+        `<br><small>Hover dots for values in console (dev) — click a transition index below to inspect.</small>`
+
+      // list transition scores
+      const list = chart.append('div').style('margin-top','8px')
+      const ul = chart.append('div').attr('id','transitions').style('margin-top','8px')
+      ul.selectAll('div').data(scores).enter().append('div').style('font-size','13px').html((d,i)=>`#${i+1}: ${d.toFixed(1)}`)
+    }
+
+    async function analyzeSample(){
+      status.textContent = 'running...'
+      const sampleType = sampleSelect.value
+      const tracks = makeSample(sampleType)
+      try{
+        const resp = await fetch('/api/v1/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tracks})})
+        const body = await resp.json()
+        if(!body.success){ status.textContent = 'error'; info.textContent = body.error || 'analyze failed'; return }
+        status.textContent = 'done'
+        renderResult(tracks, body)
+      }catch(err){
+        status.textContent = 'error'
+        info.textContent = err.message
+      }
+    }
+
+    analyzeBtn.addEventListener('click', analyzeSample)
+  })()
+  </script>
+</body>
+</html>

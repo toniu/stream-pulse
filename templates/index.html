@@ -3,129 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>pyAux - Spotify Playlist Analyser</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>pyAux — Playlist Flow Doctor</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0a0a0f">
 </head>
 <body>
-    <!-- Background animated equaliser bars -->
-    <div class="equaliser-background">
-        <div class="eq-bar"></div>
-        <div class="eq-bar"></div>
-        <div class="eq-bar"></div>
-        <div class="eq-bar"></div>
-        <div class="eq-bar"></div>
-        <div class="eq-bar"></div>
-        <div class="eq-bar"></div>
-        <div class="eq-bar"></div>
-    </div>
+    <a href="#main-input" class="skip-link">Skip to main content</a>
 
-    <!-- Main container -->
-    <div class="container">
-        <!-- Header section with logo and title -->
-        <header class="header">
-            <div class="logo-container">
-                <div class="vinyl-logo"></div>
-                <h1 class="title">py<span class="highlight">Aux</span></h1>
+    <div class="page-wrapper">
+        <!-- Floating orbs background -->
+        <div class="bg-orbs" aria-hidden="true">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+            <div class="orb orb-3"></div>
+        </div>
+
+        <header class="hero">
+            <div class="logo-mark">
+                <svg class="logo-pulse" viewBox="0 0 80 80" width="80" height="80" aria-hidden="true">
+                    <circle cx="40" cy="40" r="36" fill="none" stroke="url(#glow)" stroke-width="2"/>
+                    <circle cx="40" cy="40" r="24" fill="none" stroke="url(#glow)" stroke-width="1.5" opacity="0.6"/>
+                    <circle cx="40" cy="40" r="12" fill="url(#glow)"/>
+                    <defs>
+                        <radialGradient id="glow">
+                            <stop offset="0%" stop-color="#00E88B"/>
+                            <stop offset="100%" stop-color="#8b5cf6"/>
+                        </radialGradient>
+                    </defs>
+                </svg>
             </div>
-            <p class="subtitle">Analyse and rate your Spotify playlists</p>
+            <h1 class="title">Playlist <span class="accent">Flow</span> Doctor</h1>
+            <p class="subtitle">Diagnose jarring transitions. Discover bridge tracks. Perfect your playlist's flow.</p>
         </header>
 
-        <!-- Main input form section -->
-        <main class="main-content">
-            <div class="input-section">
-                <form id="analyseForm">
-                    <!-- Glowing input field for playlist URL -->
-                    <div class="input-wrapper">
-                        <input 
-                            type="text" 
-                            id="playlistUrl" 
-                            name="playlistUrl" 
-                            placeholder="Enter Spotify playlist URL..."
-                            required
+        <main>
+            <section class="input-section" aria-label="Playlist input">
+                <div class="input-card">
+                    <label for="main-input" class="input-label">Paste a Spotify playlist link</label>
+                    <div class="input-row">
+                        <input
+                            type="url"
+                            id="main-input"
+                            class="url-input"
+                            placeholder="https://open.spotify.com/playlist/..."
                             autocomplete="off"
                             spellcheck="false"
+                            aria-describedby="input-hint"
                         >
-                        <div class="input-glow"></div>
+                        <button id="analyse-btn" class="analyse-btn" disabled>
+                            <span class="btn-text">Diagnose Flow</span>
+                            <span class="btn-icon">&rarr;</span>
+                        </button>
                     </div>
+                    <p id="input-hint" class="input-hint">We'll scan every transition and score your playlist's smoothness</p>
+                    <p id="input-error" class="input-error" role="alert" hidden></p>
+                </div>
+            </section>
 
-                    <!-- Submit button with hover effect -->
-                    <button type="submit" class="analyse-btn" id="analyseBtn">
-                        <span class="btn-text">Analyse Playlist</span>
-                        <div class="btn-glow"></div>
-                    </button>
-                </form>
-
-                <!-- Error message display -->
-                <div id="errorMessage" class="error-message"></div>
-
-                <!-- Loading animation -->
-                <div id="loadingAnimation" class="loading-container">
-                    <div class="loading-spinner">
-                        <div class="spinner-ring"></div>
-                        <div class="spinner-ring"></div>
-                        <div class="spinner-ring"></div>
+            <!-- Loading overlay -->
+            <section id="loading-overlay" class="loading-overlay" hidden aria-label="Analysis in progress">
+                <div class="loader">
+                    <div class="loader-rings">
+                        <div class="ring ring-1"></div>
+                        <div class="ring ring-2"></div>
+                        <div class="ring ring-3"></div>
                     </div>
-                    <p class="loading-text">Analysing your playlist...</p>
-                    <div class="loading-wave">
-                        <div class="wave-bar"></div>
-                        <div class="wave-bar"></div>
-                        <div class="wave-bar"></div>
-                        <div class="wave-bar"></div>
-                        <div class="wave-bar"></div>
+                    <p class="loader-text" id="loader-text">Fetching tracks...</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Feature cards explaining the analysis -->
-            <div class="features">
+            <section class="features" aria-label="Features">
                 <div class="feature-card">
-                    <div class="feature-icon">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7z" fill="#1DB954"/>
-                            <path d="M9 9h6v6H9z" fill="#1DB954"/>
-                        </svg>
+                    <div class="feature-icon icon-bolt">
+                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                     </div>
-                    <h3>Artist Diversity</h3>
-                    <p>Analyses unique artists vs. total tracks to evaluate variety</p>
+                    <h3>Transition Scoring</h3>
+                    <p>Every track-to-track jump scored for BPM, energy, key &amp; mood compatibility.</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z" fill="#1DB954"/>
-                            <circle cx="12" cy="14" r="2" fill="#1DB954"/>
-                        </svg>
+                    <div class="feature-icon icon-wave">
+                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                     </div>
-                    <h3>Genre Cohesion</h3>
-                    <p>Measures how focused your playlist is on specific genres</p>
+                    <h3>Flow Heatmap</h3>
+                    <p>Visual arc of your playlist's energy. See exactly where the flow breaks.</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" fill="#1DB954"/>
-                        </svg>
+                    <div class="feature-icon icon-bridge">
+                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                     </div>
-                    <h3>Popularity Balance</h3>
-                    <p>Evaluates the mix of popular and underground tracks</p>
+                    <h3>Bridge Tracks</h3>
+                    <p>Get song recommendations to insert between jarring transitions.</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" fill="#1DB954"/>
-                        </svg>
+                    <div class="feature-icon icon-smooth">
+                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 14h4v7H4zM10 10h4v11h-4zM16 3h4v18h-4z"/></svg>
                     </div>
-                    <h3>Smart Recommendations</h3>
-                    <p>Get personalised track suggestions to improve your playlist</p>
+                    <h3>Auto-Smooth</h3>
+                    <p>One-click reorder that minimises total transition friction.</p>
                 </div>
-            </div>
+            </section>
         </main>
 
-        <!-- Footer -->
         <footer class="footer">
-            <p>Powered by Spotify API &copy; 2026 pyAux</p>
+            <p>pyAux &middot; Playlist Flow Doctor</p>
         </footer>
     </div>
 
-    <!-- JavaScript for functionality -->
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="/static/js/main.js"></script>
 </body>
 </html>
