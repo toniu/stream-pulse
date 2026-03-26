@@ -65,3 +65,14 @@ Notes:
 - The Next.js dev server runs on port 3000 and proxies API requests to the Flask backend on port 5001.
 - Ensure `.env` contains `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` for endpoints that call Spotify.
 
+---
+
+Cleanup performed (automated)
+- Moved legacy files into `_archive/` to keep repo tidy while preserving history:
+	- `app_old.py` -> `_archive/app_old.py`
+	- `static/css/style_old.css` -> `_archive/style_old.css`
+	- `static/js/main_old.js` -> `_archive/main_old.js`
+- Updated `.gitignore` to ignore common artefacts: `node_modules/`, `backend.log`, `logs/`, `coverage/`.
+
+If you'd like me to create a Git commit with these changes or further reorganize the frontend into a separate folder, tell me and I will proceed.
+

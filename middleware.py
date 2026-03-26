@@ -106,12 +106,13 @@ def add_security_headers(response):
     response.headers['X-XSS-Protection'] = '1; mode=block'
     
     # Content Security Policy
+    # Allow Google Fonts and its static CDN for fonts/styles used by the frontend
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-        "style-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "img-src 'self' data: https:; "
-        "font-src 'self' data:; "
+        "font-src 'self' data: https://fonts.gstatic.com; "
         "connect-src 'self' https://api.spotify.com https://cdn.jsdelivr.net; "
         "media-src 'self' https:; "
         "frame-src 'self' https://www.youtube.com; "
