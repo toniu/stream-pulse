@@ -19,18 +19,20 @@ export function ArtistsPage() {
   const [detailLoading, setDetailLoading] = useState(false);
 
   useEffect(() => {
-    if (!listeningStats) void loadAll();
+    if (!listeningStats && !isLoading) void loadAll();
   }, []);
 
   const handleSelectArtist = async (artistId: string) => {
     setDetailLoading(true);
     try {
-      const [artist, tracks] = await Promise.all([
+      // fetchArtistTopTracks uses a restricted endpoint for new apps — fetch
+      // both but treat top-tracks failure as non-fatal.
+      const [artist, tracks] = await Promise.allSettled([
         fetchArtist(artistId),
         fetchArtistTopTracks(artistId),
       ]);
-      setSelectedArtist(artist);
-      setArtistTracks(tracks);
+      if (artist.status === 'fulfilled') setSelectedArtist(artist.value);
+      setArtistTracks(tracks.status === 'fulfilled' ? tracks.value : []);
     } finally {
       setDetailLoading(false);
     }
@@ -94,14 +96,14 @@ export function ArtistsPage() {
                           {i + 1}
                         </span>
                         <img
-                          src={artist.images[2]?.url ?? artist.images[0]?.url}
+                          src={(artist.images ?? [])[2]?.url ?? (artist.images ?? [])[0]?.url}
                           alt={artist.name}
                           className="h-8 w-8 shrink-0 rounded-full object-cover"
                         />
                         <div className="min-w-0">
                           <p className="truncate text-xs font-medium">{artist.name}</p>
                           <p className="truncate text-xs text-gray-500">
-                            {artist.genres[0] ?? 'Unknown genre'}
+                            {(artist.genres ?? [])[0] ?? 'Unknown genre'}
                           </p>
                         </div>
                       </button>
@@ -123,7 +125,7 @@ export function ArtistsPage() {
                   <Card>
                     <div className="flex items-center gap-5">
                       <img
-                        src={selectedArtist.images[0]?.url}
+                        src={(selectedArtist.images ?? [])[0]?.url}
                         alt={selectedArtist.name}
                         className="h-20 w-20 rounded-full object-cover ring-2 ring-indigo-500/30"
                       />
@@ -132,11 +134,13 @@ export function ArtistsPage() {
                           {selectedArtist.name}
                         </h2>
                         <p className="text-xs text-gray-400">
-                          {formatNumber(selectedArtist.followers.total)} followers ·{' '}
+                          {selectedArtist.followers?.total != null
+                            ? `${formatNumber(selectedArtist.followers.total)} followers · `
+                            : ''}
                           {selectedArtist.popularity}/100 popularity
                         </p>
                         <div className="mt-2 flex flex-wrap gap-1">
-                          {selectedArtist.genres.slice(0, 4).map((g) => (
+                          {(selectedArtist.genres ?? []).slice(0, 4).map((g) => (
                             <span
                               key={g}
                               className="rounded-full bg-indigo-600/20 px-2 py-0.5 text-xs text-indigo-300"
@@ -169,24 +173,30 @@ export function ArtistsPage() {
                       <h3 className="mb-3 text-sm font-medium text-gray-300">
                         Global Top Tracks
                       </h3>
-                      <ol className="space-y-2">
-                        {artistTracks.slice(0, 7).map((t, i) => (
-                          <li key={t.id} className="flex items-center gap-2">
-                            <span className="w-4 text-xs text-gray-500">{i + 1}</span>
-                            <img
-                              src={t.album.images[2]?.url}
-                              alt=""
-                              className="h-7 w-7 rounded"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-xs font-medium text-white">
-                                {t.name}
-                              </p>
-                            </div>
-                            <span className="text-xs text-gray-500">{t.popularity}</span>
-                          </li>
-                        ))}
-                      </ol>
+                      {artistTracks.length === 0 ? (
+                        <p className="py-8 text-center text-xs text-gray-500">
+                          Not available — requires Extended Quota access
+                        </p>
+                      ) : (
+                        <ol className="space-y-2">
+                          {artistTracks.slice(0, 7).map((t, i) => (
+                            <li key={t.id} className="flex items-center gap-2">
+                              <span className="w-4 text-xs text-gray-500">{i + 1}</span>
+                              <img
+                                src={(t.album.images ?? [])[2]?.url}
+                                alt=""
+                                className="h-7 w-7 rounded"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-xs font-medium text-white">
+                                  {t.name}
+                                </p>
+                              </div>
+                              <span className="text-xs text-gray-500">{t.popularity}</span>
+                            </li>
+                          ))}
+                        </ol>
+                      )}
                     </Card>
                   </div>
                 </>

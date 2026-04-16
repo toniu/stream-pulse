@@ -12,7 +12,6 @@ import {
   setTopTracks,
 } from '@/store/slices/listeningSlice';
 import {
-  fetchAudioFeaturesForTracks,
   fetchRecentlyPlayed,
   fetchTopArtists,
   fetchTopTracks,
@@ -42,6 +41,7 @@ export function useListeningData() {
 
   const loadAll = useCallback(
     async (range: TimeRange = timeRange) => {
+      if (isLoading) return; // prevent concurrent fetches
       dispatch(setLoading(true));
       dispatch(setError(null));
       try {
@@ -51,22 +51,16 @@ export function useListeningData() {
           fetchRecentlyPlayed(50),
         ]);
 
-        // Enrich tracks with audio features
-        const ids = tracksPage.items.map((t) => t.id);
-        const features = await fetchAudioFeaturesForTracks(ids);
-        const featureMap = new Map(features.map((f) => [f.id, f]));
-
+        // Audio features endpoint (GET /audio-features) is restricted to
+        // apps with Extended Quota Mode — set audioFeatures to null for all tracks.
         const enrichedTop: TrackWithFeatures[] = tracksPage.items.map((t) => ({
           ...t,
-          audioFeatures: featureMap.get(t.id) ?? null,
+          audioFeatures: null,
         }));
 
-        const recentIds = recent.items.map((i) => i.track.id);
-        const recentFeatures = await fetchAudioFeaturesForTracks(recentIds);
-        const recentFeatureMap = new Map(recentFeatures.map((f) => [f.id, f]));
         const enrichedRecent: TrackWithFeatures[] = recent.items.map((i) => ({
           ...i.track,
-          audioFeatures: recentFeatureMap.get(i.track.id) ?? null,
+          audioFeatures: null,
         }));
 
         dispatch(setTopTracks(enrichedTop));
@@ -91,7 +85,7 @@ export function useListeningData() {
         dispatch(setLoading(false));
       }
     },
-    [dispatch, timeRange]
+    [dispatch, timeRange, isLoading]
   );
 
   return {

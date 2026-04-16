@@ -19,7 +19,7 @@ export function OverviewPage() {
     useListeningData();
 
   useEffect(() => {
-    if (!listeningStats) void loadAll();
+    if (!listeningStats && !isLoading) void loadAll();
   }, []);
 
   const handleRangeChange = (r: TimeRange) => {
@@ -126,7 +126,7 @@ export function OverviewPage() {
                         {i + 1}
                       </span>
                       <img
-                        src={track.album.images[2]?.url}
+                        src={(track.album.images ?? [])[2]?.url}
                         alt={track.album.name}
                         className="h-8 w-8 rounded object-cover"
                       />

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { exchangeCodeForToken } from '@/api/auth';
 import { setTokens } from '@/store/slices/authSlice';
@@ -8,8 +8,14 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 export function CallbackPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  // Guard against React StrictMode double-invocation — an auth code can only
+  // be exchanged once; a second attempt returns 400 and breaks the flow.
+  const hasRun = useRef(false);
 
   useEffect(() => {
+    if (hasRun.current) return;
+    hasRun.current = true;
+
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     const error = params.get('error');
@@ -23,6 +29,8 @@ export function CallbackPage() {
       .then((tokens) => {
         const expiresAt = Date.now() + tokens.expires_in * 1000;
         dispatch(setTokens({ accessToken: tokens.access_token, expiresAt }));
+        // Replace the URL so a page refresh doesn't re-attempt the exchange
+        window.history.replaceState({}, '', '/');
         navigate('/', { replace: true });
       })
       .catch(() => {

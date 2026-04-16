@@ -11,7 +11,7 @@ export function MoodPage() {
     useListeningData();
 
   useEffect(() => {
-    if (!listeningStats) void loadAll();
+    if (!listeningStats && !isLoading) void loadAll();
   }, []);
 
   const radarData: RadarDataPoint[] = moodSnapshot
@@ -120,7 +120,7 @@ export function MoodPage() {
                   {highEnergy.map((t, i) => (
                     <li key={t.id} className="flex items-center gap-2">
                       <span className="w-4 text-xs text-gray-500">{i + 1}</span>
-                      <img src={t.album.images[2]?.url} alt="" className="h-7 w-7 rounded" />
+                      <img src={(t.album.images ?? [])[2]?.url} alt="" className="h-7 w-7 rounded" />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-medium text-white">{t.name}</p>
                         <p className="truncate text-xs text-gray-400">
@@ -140,7 +140,7 @@ export function MoodPage() {
                   {mellow.map((t, i) => (
                     <li key={t.id} className="flex items-center gap-2">
                       <span className="w-4 text-xs text-gray-500">{i + 1}</span>
-                      <img src={t.album.images[2]?.url} alt="" className="h-7 w-7 rounded" />
+                      <img src={(t.album.images ?? [])[2]?.url} alt="" className="h-7 w-7 rounded" />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-medium text-white">{t.name}</p>
                         <p className="truncate text-xs text-gray-400">

@@ -24,7 +24,7 @@ export function ListeningPage() {
   } = useListeningData();
 
   useEffect(() => {
-    if (!listeningStats) void loadAll();
+    if (!listeningStats && !isLoading) void loadAll();
   }, []);
 
   const handleRangeChange = (r: TimeRange) => {

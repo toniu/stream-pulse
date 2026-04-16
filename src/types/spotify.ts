@@ -42,9 +42,9 @@ export interface SpotifyArtist {
   uri: string;
   href: string;
   popularity: number;
-  followers: { total: number };
-  genres: string[];
-  images: SpotifyImage[];
+  followers: { total: number } | undefined;
+  genres: string[] | undefined;
+  images: SpotifyImage[] | undefined;
 }
 
 export interface SpotifyUser {

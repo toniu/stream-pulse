@@ -52,24 +52,31 @@ export const fetchRecentlyPlayed = (
 export const fetchAudioFeaturesForTracks = async (
   trackIds: string[]
 ): Promise<AudioFeatures[]> => {
-  // Spotify accepts max 100 IDs per request
+  if (trackIds.length === 0) return [];
+
+  // Spotify deprecated /audio-features for new apps (post-Nov 2024).
+  // Return empty array gracefully so the dashboard still loads.
   const chunks: string[][] = [];
   for (let i = 0; i < trackIds.length; i += 100) {
     chunks.push(trackIds.slice(i, i + 100));
   }
 
-  const results = await Promise.all(
-    chunks.map((chunk) =>
-      client
-        .get<{ audio_features: (AudioFeatures | null)[] }>(
-          '/audio-features',
-          { params: { ids: chunk.join(',') } }
-        )
-        .then((r) => r.data.audio_features.filter(Boolean) as AudioFeatures[])
-    )
-  );
-
-  return results.flat();
+  try {
+    const results = await Promise.all(
+      chunks.map((chunk) =>
+        client
+          .get<{ audio_features: (AudioFeatures | null)[] }>(
+            '/audio-features',
+            { params: { ids: chunk.join(',') } }
+          )
+          .then((r) => r.data.audio_features.filter(Boolean) as AudioFeatures[])
+      )
+    );
+    return results.flat();
+  } catch {
+    // 403 = endpoint not available for this app; degrade gracefully
+    return [];
+  }
 };
 
 // ─── Artist ───────────────────────────────────────────────────────────────────

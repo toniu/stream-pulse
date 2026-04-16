@@ -48,12 +48,11 @@ export function useInsights() {
   ]);
 
   useEffect(() => {
-    if (!listeningStats) {
-      void loadAll().then(generate);
-    } else {
+    if (listeningStats) {
       generate();
     }
-  }, []);
+    // loadAll is handled by each page; insights regenerate once data arrives
+  }, [listeningStats]);
 
   return { insights, isGenerating, lastGeneratedAt, generate };
 }

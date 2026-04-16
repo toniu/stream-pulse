@@ -61,7 +61,7 @@ export function buildGenreDistribution(
 ): GenreDistribution[] {
   const counts: Record<string, number> = {};
   artists.forEach((artist) => {
-    artist.genres.forEach((genre) => {
+    (artist.genres ?? []).forEach((genre) => {
       counts[genre] = (counts[genre] ?? 0) + 1;
     });
   });
@@ -114,7 +114,7 @@ export function buildListeningStats(
         recentItems.length
       : 0;
 
-  const allGenres = new Set(topArtists.flatMap((a) => a.genres));
+  const allGenres = new Set(topArtists.flatMap((a) => a.genres ?? []));
 
   return {
     totalMinutesListened: totalMinutes,
