@@ -5,24 +5,29 @@ interface TimeRangePickerProps {
   onChange: (range: TimeRange) => void;
 }
 
-const ranges: { value: TimeRange; label: string }[] = [
-  { value: 'short_term', label: '4 Weeks' },
-  { value: 'medium_term', label: '6 Months' },
-  { value: 'long_term', label: 'All Time' },
+const RANGES: { value: TimeRange; label: string; sub: string }[] = [
+  { value: 'short_term',  label: '4 Weeks',  sub: 'Last 4 wks' },
+  { value: 'medium_term', label: '6 Months', sub: 'Last 6 mo'  },
+  { value: 'long_term',   label: 'All Time', sub: 'All history' },
 ];
 
 export function TimeRangePicker({ value, onChange }: TimeRangePickerProps) {
   return (
-    <div className="flex gap-1 rounded-lg bg-white/5 p-1">
-      {ranges.map((r) => (
+    <div
+      className="flex items-center gap-0.5 rounded-lg p-0.5"
+      style={{ background: 'rgba(255,255,255,0.05)' }}
+    >
+      {RANGES.map((r) => (
         <button
           key={r.value}
           onClick={() => onChange(r.value)}
-          className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+          title={r.sub}
+          className="rounded-md px-3 py-1 text-[11px] font-semibold tracking-wide transition-all"
+          style={
             value === r.value
-              ? 'bg-indigo-600 text-white'
-              : 'text-gray-400 hover:text-white'
-          }`}
+              ? { background: '#00ffba1a', color: '#00ffba', boxShadow: '0 0 0 1px #00ffba44' }
+              : { color: '#6b7280' }
+          }
         >
           {r.label}
         </button>
@@ -30,3 +35,4 @@ export function TimeRangePicker({ value, onChange }: TimeRangePickerProps) {
     </div>
   );
 }
+

@@ -1,21 +1,21 @@
-import { Radio } from 'lucide-react';
 import { initiateSpotifyLogin } from '@/api/auth';
+import logoTransparent from '@/assets/stream-pulse-logo-transparent.png';
 
 export function LoginPage() {
   return (
-    <div className="flex h-screen items-center justify-center bg-[#09090f]">
+    <div className="flex h-screen items-center justify-center bg-[#060f0a]">
       <div className="flex flex-col items-center gap-8 text-center">
         {/* Logo */}
-        <div className="flex flex-col items-center gap-3">
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600">
-            <Radio size={28} className="text-white" />
-          </span>
-          <div>
-            <h1 className="text-2xl font-bold text-white">StreamPulse</h1>
-            <p className="mt-1 text-sm text-gray-400">
-              Spotify Listening Intelligence Platform
-            </p>
-          </div>
+        <div className="flex flex-col items-center gap-4">
+          <img
+            src={logoTransparent}
+            alt="StreamPulse"
+            className="h-14 w-auto object-contain"
+            draggable={false}
+          />
+          <p className="text-sm text-gray-400">
+            Spotify Listening Intelligence Platform
+          </p>
         </div>
 
         {/* Feature list */}
@@ -27,7 +27,7 @@ export function LoginPage() {
             'Artist deep dives',
           ].map((f) => (
             <li key={f} className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#00ffba]" />
               {f}
             </li>
           ))}

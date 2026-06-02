@@ -159,6 +159,93 @@ export function buildMoodSnapshot(
   };
 }
 
+// ─── Genre-based Mood Estimation ─────────────────────────────────────────────
+// Used as a fallback when Spotify's /audio-features endpoint is restricted.
+
+const ENERGY_GENRE_MAP: [string[], number][] = [
+  [['metal', 'hardcore', 'punk', 'thrash', 'death metal', 'grindcore', 'speed metal'], 0.92],
+  [['edm', 'electro', 'techno', 'trance', 'drum and bass', 'dnb', 'dubstep', 'rave', 'industrial'], 0.88],
+  [['dance', 'house', 'club', 'reggaeton', 'dancehall', 'afrobeats'], 0.80],
+  [['rock', 'indie rock', 'alternative rock', 'hard rock', 'garage rock'], 0.70],
+  [['hip hop', 'hip-hop', 'rap', 'trap', 'drill', 'grime'], 0.68],
+  [['pop', 'k-pop', 'j-pop', 'latin', 'bubblegum'], 0.62],
+  [['r&b', 'soul', 'funk', 'gospel'], 0.55],
+  [['jazz', 'blues', 'indie', 'alternative'], 0.50],
+  [['folk', 'singer-songwriter', 'acoustic', 'country', 'bluegrass'], 0.35],
+  [['classical', 'orchestral', 'chamber', 'ambient', 'new age', 'meditation', 'sleep'], 0.18],
+];
+
+const VALENCE_GENRE_MAP: [string[], number][] = [
+  [['pop', 'k-pop', 'dance', 'disco', 'funk', 'soul', 'gospel', 'reggaeton', 'dancehall', 'latin', 'afrobeats'], 0.78],
+  [['r&b', 'country', 'folk', 'singer-songwriter', 'acoustic'], 0.58],
+  [['rock', 'indie', 'jazz', 'blues', 'alternative'], 0.52],
+  [['hip hop', 'hip-hop', 'rap', 'trap', 'drill'], 0.45],
+  [['classical', 'orchestral', 'ambient', 'new age'], 0.42],
+  [['metal', 'hardcore', 'punk', 'industrial', 'death metal', 'doom'], 0.22],
+];
+
+const DANCE_GENRE_MAP: [string[], number][] = [
+  [['edm', 'dance', 'house', 'techno', 'trance', 'club', 'disco', 'reggaeton', 'k-pop', 'drum and bass', 'dnb', 'afrobeats'], 0.88],
+  [['hip hop', 'hip-hop', 'rap', 'trap', 'r&b', 'funk', 'soul', 'latin'], 0.76],
+  [['pop', 'dancehall'], 0.68],
+  [['rock', 'indie', 'alternative'], 0.45],
+  [['metal', 'hardcore', 'punk'], 0.35],
+  [['folk', 'country', 'classical', 'ambient', 'acoustic'], 0.28],
+];
+
+const ACOUSTIC_GENRE_MAP: [string[], number][] = [
+  [['acoustic', 'folk', 'singer-songwriter', 'bluegrass', 'country', 'classical', 'orchestral', 'chamber'], 0.82],
+  [['blues', 'jazz', 'soul', 'gospel'], 0.62],
+  [['rock', 'indie', 'alternative', 'pop', 'r&b'], 0.32],
+  [['hip hop', 'hip-hop', 'rap', 'trap'], 0.20],
+  [['edm', 'electro', 'techno', 'dance', 'house', 'dubstep', 'synth', 'industrial'], 0.08],
+];
+
+function estimateFromGenreMap(genres: string[], map: [string[], number][]): number {
+  const joined = genres.join(' ').toLowerCase();
+  let weightedSum = 0;
+  let totalWeight = 0;
+  for (const [keywords, score] of map) {
+    const hits = keywords.filter((kw) => joined.includes(kw)).length;
+    if (hits > 0) {
+      weightedSum += score * hits;
+      totalWeight += hits;
+    }
+  }
+  return totalWeight > 0 ? weightedSum / totalWeight : 0.5;
+}
+
+/** Estimate energy (0–1) from a list of genre strings. */
+export function estimateEnergyFromGenres(genres: string[]): number {
+  return estimateFromGenreMap(genres, ENERGY_GENRE_MAP);
+}
+
+/**
+ * Build a MoodSnapshot estimated from artist genres.
+ * Used as fallback when Spotify's /audio-features endpoint is unavailable.
+ */
+export function buildMoodFromGenres(artists: SpotifyArtist[]): MoodSnapshot | null {
+  const allGenres = artists.flatMap((a) => a.genres ?? []);
+  if (allGenres.length === 0) return null;
+
+  const valence      = estimateFromGenreMap(allGenres, VALENCE_GENRE_MAP);
+  const energy       = estimateFromGenreMap(allGenres, ENERGY_GENRE_MAP);
+  const danceability = estimateFromGenreMap(allGenres, DANCE_GENRE_MAP);
+  const acousticness = estimateFromGenreMap(allGenres, ACOUSTIC_GENRE_MAP);
+  // Estimate tempo from energy: range roughly 60–180 BPM
+  const tempo = 60 + energy * 120;
+
+  return {
+    averageValence:      valence,
+    averageEnergy:       energy,
+    averageDanceability: danceability,
+    averageAcousticness: acousticness,
+    averageTempo:        tempo,
+    moodLabel: classifyMood(valence, energy),
+    moodColor: getMoodColor(valence, energy),
+  };
+}
+
 function classifyMood(valence: number, energy: number): MoodLabel {
   if (valence > 0.7 && energy > 0.7) return 'Euphoric';
   if (valence > 0.5 && energy > 0.7) return 'Energetic';
@@ -183,4 +270,38 @@ function getMoodColor(valence: number, energy: number): string {
     Dark: '#7c3aed',
   };
   return palette[label];
+}
+
+/**
+ * Last-resort mood estimate when neither audio features nor genre data are
+ * available. Uses average track popularity as a rough proxy: underground /
+ * low-popularity tracks skew darker and more intense; mainstream tracks skew
+ * upbeat and danceable.
+ */
+export function buildMoodFromPopularity(tracks: TrackWithFeatures[]): MoodSnapshot | null {
+  if (tracks.length === 0) return null;
+  // popularity is typed as number but may be undefined at runtime for some
+  // Spotify API access tiers — filter to only valid finite values.
+  const pops = tracks
+    .map((t) => t.popularity)
+    .filter((p): p is number => typeof p === 'number' && Number.isFinite(p) && p >= 0);
+  if (pops.length === 0) return null;
+  const avgPop = pops.reduce((s, p) => s + p, 0) / pops.length;
+  const n = avgPop / 100; // 0–1 normalised
+
+  const energy       = 0.50 + n * 0.25; // 0.50–0.75
+  const valence      = 0.25 + n * 0.45; // 0.25–0.70
+  const danceability = 0.55 + n * 0.20; // 0.55–0.75
+  const acousticness = 0.35 - n * 0.20; // 0.35–0.15
+  const tempo        = 85  + n * 55;    // 85–140 BPM
+
+  return {
+    averageValence:      valence,
+    averageEnergy:       energy,
+    averageDanceability: danceability,
+    averageAcousticness: acousticness,
+    averageTempo:        tempo,
+    moodLabel: classifyMood(valence, energy),
+    moodColor: getMoodColor(valence, energy),
+  };
 }

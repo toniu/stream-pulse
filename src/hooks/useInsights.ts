@@ -17,11 +17,13 @@ export function useInsights() {
     listeningStats,
     moodSnapshot,
     hourlyDistribution,
-    loadAll,
   } = useListeningData();
 
   const generate = useCallback(() => {
-    if (!listeningStats || !moodSnapshot) return;
+    // Only require listeningStats — moodSnapshot may be null for apps without
+    // Extended Quota (audio features restricted). Mood-specific rules handle
+    // null gracefully via the engine's per-rule try/catch.
+    if (!listeningStats) return;
 
     dispatch(setGenerating(true));
 
@@ -47,12 +49,14 @@ export function useInsights() {
     hourlyDistribution,
   ]);
 
+  // Re-run whenever listeningStats or moodSnapshot change so that mood insights
+  // are included once audio features arrive (they load after the base stats).
   useEffect(() => {
     if (listeningStats) {
       generate();
     }
-    // loadAll is handled by each page; insights regenerate once data arrives
-  }, [listeningStats]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listeningStats, moodSnapshot]);
 
   return { insights, isGenerating, lastGeneratedAt, generate };
 }

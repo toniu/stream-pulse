@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { store } from '@/store';
 import {
   setDailyDistribution,
   setError,
@@ -12,7 +13,8 @@ import {
   setTopTracks,
 } from '@/store/slices/listeningSlice';
 import {
-  fetchRecentlyPlayed,
+  fetchAudioFeaturesForTracks,
+  fetchRecentlyPlayedSince,
   fetchTopArtists,
   fetchTopTracks,
 } from '@/api/endpoints';
@@ -20,9 +22,16 @@ import {
   buildDailyDistribution,
   buildHourlyDistribution,
   buildListeningStats,
+  buildMoodFromGenres,
+  buildMoodFromPopularity,
   buildMoodSnapshot,
 } from '@/utils/analytics';
-import type { TimeRange, TrackWithFeatures } from '@/types';
+import { rangeStartMs } from '@/types/spotify';
+import type { AudioFeatures, TimeRange, TrackWithFeatures } from '@/types';
+
+// Module-level timestamp so all hook instances share the same cooldown
+let lastLoadAt = 0;
+const LOAD_COOLDOWN_MS = 5_000; // don't reload within 5 seconds
 
 export function useListeningData() {
   const dispatch = useAppDispatch();
@@ -40,25 +49,36 @@ export function useListeningData() {
   } = useAppSelector((s) => s.listening);
 
   const loadAll = useCallback(
-    async (range: TimeRange = timeRange) => {
-      if (isLoading) return; // prevent concurrent fetches
+    async (range: TimeRange = timeRange, force = false) => {
+      // Read live store state — guards against the race where multiple
+      // components mount simultaneously and all see isLoading=false from
+      // their stale closures before the first dispatch fires.
+      if (store.getState().listening.isLoading) return;
+      // Cooldown: don't hit the API again if we just loaded (skip for explicit range changes)
+      const now = Date.now();
+      if (!force && now - lastLoadAt < LOAD_COOLDOWN_MS) return;
+      lastLoadAt = now;
       dispatch(setLoading(true));
       dispatch(setError(null));
       try {
         const [tracksPage, artistsPage, recent] = await Promise.all([
           fetchTopTracks(range, 50),
           fetchTopArtists(range, 50),
-          fetchRecentlyPlayed(50),
+          fetchRecentlyPlayedSince(rangeStartMs(range), 200),
         ]);
 
-        // Audio features endpoint (GET /audio-features) is restricted to
-        // apps with Extended Quota Mode — set audioFeatures to null for all tracks.
+        // Attempt to fetch audio features — returns [] gracefully on 403 (restricted endpoint).
+        const trackIds = tracksPage.items.map((t) => t.id);
+        const audioFeaturesList = await fetchAudioFeaturesForTracks(trackIds);
+        const audioFeaturesMap: Record<string, AudioFeatures> = {};
+        audioFeaturesList.forEach((f) => { audioFeaturesMap[f.id] = f; });
+
         const enrichedTop: TrackWithFeatures[] = tracksPage.items.map((t) => ({
           ...t,
-          audioFeatures: null,
+          audioFeatures: audioFeaturesMap[t.id] ?? null,
         }));
 
-        const enrichedRecent: TrackWithFeatures[] = recent.items.map((i) => ({
+        const enrichedRecent: TrackWithFeatures[] = recent.map((i) => ({
           ...i.track,
           audioFeatures: null,
         }));
@@ -68,15 +88,17 @@ export function useListeningData() {
         dispatch(setRecentTracks(enrichedRecent));
         dispatch(
           setListeningStats(
-            buildListeningStats(recent.items, artistsPage.items)
+            buildListeningStats(recent, artistsPage.items)
           )
         );
 
-        const mood = buildMoodSnapshot(enrichedTop);
+        const mood = buildMoodSnapshot(enrichedTop)
+          ?? buildMoodFromGenres(artistsPage.items)
+          ?? buildMoodFromPopularity(enrichedTop);
         if (mood) dispatch(setMoodSnapshot(mood));
 
-        dispatch(setHourlyDistribution(buildHourlyDistribution(recent.items)));
-        dispatch(setDailyDistribution(buildDailyDistribution(recent.items)));
+        dispatch(setHourlyDistribution(buildHourlyDistribution(recent)));
+        dispatch(setDailyDistribution(buildDailyDistribution(recent)));
       } catch (err) {
         dispatch(
           setError(err instanceof Error ? err.message : 'Failed to load data')
@@ -85,7 +107,7 @@ export function useListeningData() {
         dispatch(setLoading(false));
       }
     },
-    [dispatch, timeRange, isLoading]
+    [dispatch, timeRange]
   );
 
   return {

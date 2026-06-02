@@ -39,7 +39,7 @@ export function CallbackPage() {
   }, [dispatch, navigate]);
 
   return (
-    <div className="flex h-screen items-center justify-center bg-[#09090f]">
+    <div className="flex h-screen items-center justify-center bg-[#060f0a]">
       <div className="flex flex-col items-center gap-4">
         <LoadingSpinner size={40} />
         <p className="text-sm text-gray-400">Connecting to Spotify…</p>

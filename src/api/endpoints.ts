@@ -1,6 +1,7 @@
 import client from './client';
 import type {
   AudioFeatures,
+  RecentlyPlayedItem,
   RecentlyPlayedResponse,
   SpotifyArtist,
   SpotifyPagingObject,
@@ -38,14 +39,42 @@ export const fetchTopArtists = (
 
 // ─── Recently Played ──────────────────────────────────────────────────────────
 
-export const fetchRecentlyPlayed = (
-  limit = 50
-): Promise<RecentlyPlayedResponse> =>
-  client
-    .get<RecentlyPlayedResponse>('/me/player/recently-played', {
-      params: { limit },
-    })
-    .then((r) => r.data);
+/**
+ * Fetches recently-played items since `sinceMs` (Unix timestamp in ms),
+ * paginating via cursor until the time boundary is reached or `maxItems` are
+ * collected. Returns newest-first.
+ *
+ * For long_term (sinceMs = 0) the limit cap determines how far back we go.
+ */
+export const fetchRecentlyPlayedSince = async (
+  sinceMs: number,
+  maxItems = 200
+): Promise<RecentlyPlayedItem[]> => {
+  const collected: RecentlyPlayedItem[] = [];
+  // Start from the most-recent plays and walk backwards in time.
+  let next: string | null = '/me/player/recently-played?limit=50';
+
+  while (next && collected.length < maxItems) {
+    // axios treats absolute URLs (https://…) as-is even with a baseURL set.
+    const page = await client
+      .get<RecentlyPlayedResponse>(next)
+      .then((r) => r.data);
+
+    let hitBoundary = false;
+    for (const item of page.items) {
+      if (sinceMs > 0 && new Date(item.played_at).getTime() < sinceMs) {
+        hitBoundary = true;
+        break;
+      }
+      collected.push(item);
+      if (collected.length >= maxItems) break;
+    }
+
+    next = hitBoundary || !page.next ? null : page.next;
+  }
+
+  return collected;
+};
 
 // ─── Audio Features ───────────────────────────────────────────────────────────
 
@@ -86,10 +115,10 @@ export const fetchArtist = (artistId: string): Promise<SpotifyArtist> =>
 
 export const fetchArtistTopTracks = (
   artistId: string,
-  market = 'US'
+  market?: string
 ): Promise<SpotifyTrack[]> =>
   client
     .get<{ tracks: SpotifyTrack[] }>(`/artists/${artistId}/top-tracks`, {
-      params: { market },
+      params: market ? { market } : undefined,
     })
     .then((r) => r.data.tracks);

@@ -101,3 +101,16 @@ export interface AudioFeatures {
 }
 
 export type TimeRange = 'short_term' | 'medium_term' | 'long_term';
+
+/**
+ * Returns the start of the analytics window as a Unix timestamp (ms).
+ * - short_term  ≈ last 4 weeks  (matches Spotify's short_term top-items)
+ * - medium_term ≈ last 6 months (matches Spotify's medium_term)
+ * - long_term   = no lower bound (all available history up to maxItems cap)
+ */
+export function rangeStartMs(range: TimeRange): number {
+  const now = Date.now();
+  if (range === 'short_term') return now - 28 * 24 * 60 * 60 * 1000;   // 4 weeks
+  if (range === 'medium_term') return now - 182 * 24 * 60 * 60 * 1000; // ~6 months
+  return 0; // long_term — no filter, paginate up to maxItems
+}

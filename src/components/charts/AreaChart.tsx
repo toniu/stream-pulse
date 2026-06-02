@@ -21,7 +21,7 @@ export function AreaChart<T extends Record<string, unknown>>({
   data,
   xKey,
   yKey,
-  color = '#6366f1',
+  color = '#00ffba',
   height = 200,
   tooltipFormatter,
 }: AreaChartProps<T>) {
@@ -48,10 +48,11 @@ export function AreaChart<T extends Record<string, unknown>>({
         />
         <Tooltip
           contentStyle={{
-            background: '#1a1a2e',
-            border: '1px solid rgba(255,255,255,0.1)',
+            background: '#0c1a12',
+            border: '1px solid rgba(0,255,186,0.15)',
             borderRadius: 8,
             fontSize: 12,
+            color: '#e5e7eb',
           }}
           formatter={
             tooltipFormatter

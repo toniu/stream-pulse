@@ -31,6 +31,6 @@ export interface InsightContext {
   topTracks: import('./analytics').TrackWithFeatures[];
   topArtists: import('./spotify').SpotifyArtist[];
   listeningStats: import('./analytics').ListeningStats;
-  moodSnapshot: import('./analytics').MoodSnapshot;
+  moodSnapshot: import('./analytics').MoodSnapshot | null;
   hourlyDistribution: import('./analytics').ListeningHour[];
 }

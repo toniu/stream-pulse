@@ -14,7 +14,7 @@ interface RadarChartProps {
   height?: number;
 }
 
-export function RadarChart({ data, color = '#6366f1', height = 280 }: RadarChartProps) {
+export function RadarChart({ data, color = '#00ffba', height = 280 }: RadarChartProps) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ReRadarChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 16 }}>
@@ -33,8 +33,8 @@ export function RadarChart({ data, color = '#6366f1', height = 280 }: RadarChart
         />
         <Tooltip
           contentStyle={{
-            background: '#1a1a2e',
-            border: '1px solid rgba(255,255,255,0.1)',
+            background: '#0c1a12',
+            border: '1px solid rgba(0,255,186,0.15)',
             borderRadius: 8,
             fontSize: 12,
           }}

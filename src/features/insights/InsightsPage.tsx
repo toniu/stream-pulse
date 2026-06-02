@@ -38,7 +38,7 @@ export function InsightsPage() {
         title="Insights Feed"
         subtitle="Auto-generated behavioural analytics from your listening data"
       />
-      <div className="p-6 space-y-6">
+      <div className="p-4 space-y-4 md:p-6 md:space-y-6">
         {/* Header row */}
         <div className="flex items-center justify-between">
           <p className="text-xs text-gray-400">
@@ -49,7 +49,7 @@ export function InsightsPage() {
           <button
             onClick={generate}
             disabled={isGenerating}
-            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-indigo-500 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-lg border border-[#00ffba]/40 bg-[#00ffba]/10 px-3 py-1.5 text-xs font-medium text-[#00ffba] transition-all hover:bg-[#00ffba]/20 disabled:opacity-50"
           >
             <RefreshCw size={12} className={isGenerating ? 'animate-spin' : ''} />
             Refresh

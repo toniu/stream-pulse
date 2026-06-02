@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { Clock, Headphones, Music, Users } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { MetricCard } from '@/components/common/MetricCard';
@@ -18,13 +17,9 @@ export function OverviewPage() {
   const { listeningStats, topTracks, moodSnapshot, dailyDistribution, isLoading, error, loadAll } =
     useListeningData();
 
-  useEffect(() => {
-    if (!listeningStats && !isLoading) void loadAll();
-  }, []);
-
   const handleRangeChange = (r: TimeRange) => {
     dispatch(setTimeRange(r));
-    void loadAll(r);
+    void loadAll(r, true);
   };
 
   return (
@@ -33,7 +28,7 @@ export function OverviewPage() {
         title="Overview"
         subtitle="Your Spotify listening intelligence dashboard"
       />
-      <div className="p-6 space-y-6">
+      <div className="p-4 space-y-4 md:p-6 md:space-y-6">
         {/* Controls */}
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium text-gray-400">Key Metrics</h2>
@@ -49,18 +44,18 @@ export function OverviewPage() {
         ) : (
           <>
             {/* Metric cards */}
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
               <MetricCard
                 label="Minutes Listened"
                 value={listeningStats ? formatMinutes(listeningStats.totalMinutesListened) : '—'}
                 icon={Clock}
-                iconColor="text-indigo-400"
+                iconColor="text-[#00ffba]"
               />
               <MetricCard
                 label="Unique Tracks"
                 value={listeningStats?.uniqueTracks ?? '—'}
                 icon={Music}
-                iconColor="text-pink-400"
+                iconColor="text-[#2dd4bf]"
               />
               <MetricCard
                 label="Unique Artists"
@@ -70,7 +65,7 @@ export function OverviewPage() {
               />
               <MetricCard
                 label="Genres Explored"
-                value={listeningStats?.uniqueGenres ?? '—'}
+                value={listeningStats ? (listeningStats.uniqueGenres > 0 ? listeningStats.uniqueGenres : '—') : '—'}
                 icon={Headphones}
                 iconColor="text-amber-400"
               />
@@ -107,8 +102,8 @@ export function OverviewPage() {
                       {moodSnapshot.moodLabel}
                     </p>
                     <div className="flex gap-4 text-xs text-gray-400">
-                      <span>Valence {(moodSnapshot.averageValence * 100).toFixed(0)}%</span>
-                      <span>Energy {(moodSnapshot.averageEnergy * 100).toFixed(0)}%</span>
+                      <span>Valence {Number.isFinite(moodSnapshot.averageValence) ? `${(moodSnapshot.averageValence * 100).toFixed(0)}%` : '—'}</span>
+                      <span>Energy {Number.isFinite(moodSnapshot.averageEnergy) ? `${(moodSnapshot.averageEnergy * 100).toFixed(0)}%` : '—'}</span>
                     </div>
                   </>
                 ) : (
@@ -127,7 +122,7 @@ export function OverviewPage() {
                       </span>
                       <img
                         src={(track.album.images ?? [])[2]?.url}
-                        alt={track.album.name}
+                        alt=""
                         className="h-8 w-8 rounded object-cover"
                       />
                       <div className="min-w-0 flex-1">

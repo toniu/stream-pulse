@@ -23,8 +23,8 @@ export function BarChart<T extends Record<string, unknown>>({
   data,
   xKey,
   yKey,
-  color = '#4f46e5',
-  activeColor = '#818cf8',
+  color = '#00ffba',
+  activeColor = '#4fffcc',
   height = 200,
   tooltipFormatter,
 }: BarChartProps<T>) {
@@ -46,10 +46,11 @@ export function BarChart<T extends Record<string, unknown>>({
         <Tooltip
           cursor={{ fill: 'rgba(255,255,255,0.04)' }}
           contentStyle={{
-            background: '#1a1a2e',
-            border: '1px solid rgba(255,255,255,0.1)',
+            background: '#0c1a12',
+            border: '1px solid rgba(0,255,186,0.15)',
             borderRadius: 8,
             fontSize: 12,
+            color: '#e5e7eb',
           }}
           formatter={
             tooltipFormatter

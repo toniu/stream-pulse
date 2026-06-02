@@ -75,7 +75,7 @@ export const insightRules: InsightRule[] = [
     id: 'high_energy_listener',
     name: 'High Energy Listener',
     evaluate({ moodSnapshot }) {
-      if (moodSnapshot.averageEnergy < 0.65) return null;
+      if (!moodSnapshot || !Number.isFinite(moodSnapshot.averageEnergy) || moodSnapshot.averageEnergy < 0.65) return null;
       return {
         id: 'high_energy_listener',
         category: 'mood',
@@ -91,7 +91,7 @@ export const insightRules: InsightRule[] = [
     id: 'melancholic_listener',
     name: 'Melancholic Listener',
     evaluate({ moodSnapshot }) {
-      if (moodSnapshot.averageValence > 0.4) return null;
+      if (!moodSnapshot || !Number.isFinite(moodSnapshot.averageValence) || moodSnapshot.averageValence > 0.4) return null;
       return {
         id: 'melancholic_listener',
         category: 'mood',
@@ -107,7 +107,7 @@ export const insightRules: InsightRule[] = [
     id: 'happy_listener',
     name: 'Happy Listener',
     evaluate({ moodSnapshot }) {
-      if (moodSnapshot.averageValence < 0.65) return null;
+      if (!moodSnapshot || !Number.isFinite(moodSnapshot.averageValence) || moodSnapshot.averageValence < 0.65) return null;
       return {
         id: 'happy_listener',
         category: 'mood',

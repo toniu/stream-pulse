@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Card } from '@/components/common/Card';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
@@ -23,13 +22,9 @@ export function ListeningPage() {
     loadAll,
   } = useListeningData();
 
-  useEffect(() => {
-    if (!listeningStats && !isLoading) void loadAll();
-  }, []);
-
   const handleRangeChange = (r: TimeRange) => {
     dispatch(setTimeRange(r));
-    void loadAll(r);
+    void loadAll(r, true);
   };
 
   const peakHour = hourlyDistribution.reduce(
@@ -43,7 +38,7 @@ export function ListeningPage() {
         title="Listening Behaviour"
         subtitle="When and how you listen over time"
       />
-      <div className="p-6 space-y-6">
+      <div className="p-4 space-y-4 md:p-6 md:space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium text-gray-400">Analysis Period</h2>
           <TimeRangePicker value={timeRange} onChange={handleRangeChange} />
@@ -58,7 +53,7 @@ export function ListeningPage() {
         ) : (
           <>
             {/* Stats row */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Card className="text-center">
                 <p className="text-xs uppercase tracking-widest text-gray-400">
                   Total Listening
@@ -73,7 +68,7 @@ export function ListeningPage() {
                 <p className="text-xs uppercase tracking-widest text-gray-400">
                   Peak Hour
                 </p>
-                <p className="mt-1 text-2xl font-bold text-indigo-300">
+                <p className="mt-1 text-2xl font-bold text-[#00ffba]">
                   {peakHour?.label ?? '—'}
                 </p>
               </Card>
@@ -81,7 +76,7 @@ export function ListeningPage() {
                 <p className="text-xs uppercase tracking-widest text-gray-400">
                   Most Active Day
                 </p>
-                <p className="mt-1 text-2xl font-bold text-pink-300">
+                <p className="mt-1 text-2xl font-bold text-emerald-300">
                   {listeningStats?.mostActiveDay ?? '—'}
                 </p>
               </Card>
@@ -100,8 +95,8 @@ export function ListeningPage() {
                 xKey="label"
                 yKey="count"
                 height={220}
-                color="#4f46e5"
-                activeColor="#818cf8"
+                color="#00ffba"
+                activeColor="#4fffcc"
                 tooltipFormatter={(v) => `${v} streams`}
               />
             </Card>
@@ -118,7 +113,7 @@ export function ListeningPage() {
                 }))}
                 xKey="date"
                 yKey="minutes"
-                color="#ec4899"
+                color="#2dd4bf"
                 height={200}
                 tooltipFormatter={(v) => `${v}m`}
               />

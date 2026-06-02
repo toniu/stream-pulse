@@ -1,20 +1,30 @@
-import { useEffect } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Card } from '@/components/common/Card';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { RadarChart } from '@/components/charts/RadarChart';
 import { useListeningData } from '@/hooks/useListeningData';
-import type { RadarDataPoint } from '@/types';
+import { estimateEnergyFromGenres } from '@/utils/analytics';
+import type { RadarDataPoint, TrackWithFeatures } from '@/types';
 
 export function MoodPage() {
-  const { moodSnapshot, topTracks, listeningStats, isLoading, error, loadAll } =
+  const { moodSnapshot, topTracks, topArtists, listeningStats, isLoading, error } =
     useListeningData();
 
-  useEffect(() => {
-    if (!listeningStats && !isLoading) void loadAll();
-  }, []);
+  // Map artist id → genres so we can estimate energy for each track
+  const artistGenreMap = new Map(topArtists.map((a) => [a.id, a.genres ?? []]));
 
-  const radarData: RadarDataPoint[] = moodSnapshot
+  const trackEnergyScore = (t: TrackWithFeatures): number => {
+    if (t.audioFeatures) return t.audioFeatures.energy;
+    const genres = t.artists.flatMap((a) => artistGenreMap.get(a.id) ?? []).filter((g): g is string => Boolean(g));
+    const est = genres.length > 0 ? estimateEnergyFromGenres(genres) : (t.popularity ?? 50) / 100;
+    return Number.isFinite(est) ? est : 0.5;
+  };
+
+  // Only render radar when all key values are finite — NaN from the popularity
+  // fallback would produce a broken chart.
+  const radarData: RadarDataPoint[] = moodSnapshot &&
+    Number.isFinite(moodSnapshot.averageValence) &&
+    Number.isFinite(moodSnapshot.averageEnergy)
     ? [
         { subject: 'Valence', value: Math.round(moodSnapshot.averageValence * 100), fullMark: 100 },
         { subject: 'Energy', value: Math.round(moodSnapshot.averageEnergy * 100), fullMark: 100 },
@@ -24,21 +34,27 @@ export function MoodPage() {
       ]
     : [];
 
-  // Top-N tracks sorted by energy
-  const highEnergy = [...topTracks]
-    .filter((t) => t.audioFeatures)
-    .sort((a, b) => (b.audioFeatures!.energy) - (a.audioFeatures!.energy))
-    .slice(0, 5);
+  // A track's energy score is only considered reliable when it comes from real
+  // audio features or genre data — not just the popularity fallback.
+  const hasReliableScore = (t: TrackWithFeatures): boolean => {
+    if (t.audioFeatures) return true;
+    const genres = t.artists.flatMap((a) => artistGenreMap.get(a.id) ?? []).filter(Boolean);
+    return genres.length > 0;
+  };
+
+  const sorted = [...topTracks].sort((a, b) => trackEnergyScore(b) - trackEnergyScore(a));
+  const highEnergy = sorted.slice(0, 5);
+  const highEnergyIds = new Set(highEnergy.map((t) => t.id));
 
   const mellow = [...topTracks]
-    .filter((t) => t.audioFeatures)
-    .sort((a, b) => (a.audioFeatures!.energy) - (b.audioFeatures!.energy))
+    .sort((a, b) => trackEnergyScore(a) - trackEnergyScore(b))
+    .filter((t) => !highEnergyIds.has(t.id))
     .slice(0, 5);
 
   return (
     <div className="flex flex-col">
       <Header title="Mood & Energy" subtitle="Audio fingerprint of your listening" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 space-y-4 md:p-6 md:space-y-6">
         {isLoading ? (
           <div className="flex h-48 items-center justify-center">
             <LoadingSpinner size={32} />
@@ -62,8 +78,8 @@ export function MoodPage() {
                     {moodSnapshot.moodLabel}
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    Avg tempo {Math.round(moodSnapshot.averageTempo)} BPM · Valence{' '}
-                    {(moodSnapshot.averageValence * 100).toFixed(0)}%
+                    Avg tempo {Number.isFinite(moodSnapshot.averageTempo) ? Math.round(moodSnapshot.averageTempo) : '—'} BPM · Valence{' '}
+                    {Number.isFinite(moodSnapshot.averageValence) ? `${(moodSnapshot.averageValence * 100).toFixed(0)}%` : '—'}
                   </p>
                 </div>
               </Card>
@@ -96,13 +112,13 @@ export function MoodPage() {
                         <div className="flex justify-between text-xs mb-2">
                           <span className="text-gray-300">{label}</span>
                           <span className="font-bold text-white">
-                            {(value * 100).toFixed(0)}%
+                            {Number.isFinite(value) ? `${(value * 100).toFixed(0)}%` : '—'}
                           </span>
                         </div>
                         <div className="h-1.5 w-full rounded-full bg-white/5">
                           <div
                             className="h-full rounded-full transition-all duration-500"
-                            style={{ width: `${value * 100}%`, background: color }}
+                            style={{ width: Number.isFinite(value) ? `${value * 100}%` : '0%', background: color }}
                           />
                         </div>
                       </Card>
@@ -128,7 +144,7 @@ export function MoodPage() {
                         </p>
                       </div>
                       <span className="text-xs text-red-400">
-                        {(t.audioFeatures!.energy * 100).toFixed(0)}%
+                        {hasReliableScore(t) ? `${(trackEnergyScore(t) * 100).toFixed(0)}%` : '—'}
                       </span>
                     </li>
                   ))}
@@ -148,7 +164,7 @@ export function MoodPage() {
                         </p>
                       </div>
                       <span className="text-xs text-blue-400">
-                        {(t.audioFeatures!.energy * 100).toFixed(0)}%
+                        {hasReliableScore(t) ? `${(trackEnergyScore(t) * 100).toFixed(0)}%` : '—'}
                       </span>
                     </li>
                   ))}

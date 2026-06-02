@@ -2,7 +2,7 @@ export function LoadingSpinner({ size = 24 }: { size?: number }) {
   return (
     <div className="flex items-center justify-center">
       <svg
-        className="animate-spin text-indigo-400"
+        className="animate-spin text-[#00ffba]"
         style={{ width: size, height: size }}
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
