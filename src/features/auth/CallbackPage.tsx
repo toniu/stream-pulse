@@ -28,7 +28,13 @@ export function CallbackPage() {
     exchangeCodeForToken(code)
       .then((tokens) => {
         const expiresAt = Date.now() + tokens.expires_in * 1000;
-        dispatch(setTokens({ accessToken: tokens.access_token, expiresAt }));
+        dispatch(
+          setTokens({
+            accessToken: tokens.access_token,
+            expiresAt,
+            refreshToken: tokens.refresh_token,
+          })
+        );
         // Replace the URL so a page refresh doesn't re-attempt the exchange
         window.history.replaceState({}, '', '/');
         navigate('/', { replace: true });

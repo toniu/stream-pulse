@@ -1,73 +1,65 @@
-# React + TypeScript + Vite
+# StreamPulse
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Spotify Listening Intelligence Platform** — visualise your listening habits, mood trends, genre breakdown, and auto-generated insights, all without sending any data to a server.
 
-Currently, two official plugins are available:
+> **Live demo**: [Add Vercel URL here once deployed]  
+> **No Spotify account needed** — click "View Demo" on the login page to explore with sample data.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## Screenshots
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+<!-- Add screenshots after first deployment -->
+<!-- Suggested captures: Login page, Overview, Mood page, Artists deep-dive, Listening page -->
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Features
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+| Feature | Description |
+|---|---|
+| **Listening Overview** | Top tracks, top artists, and key stats for short / medium / long-term ranges |
+| **Mood & Energy** | Valence, energy, danceability, acousticness and tempo visualisations |
+| **Listening Patterns** | Hourly heatmap, daily trend chart, and genre distribution |
+| **Artist Deep Dives** | Select any top artist for a radar chart, genre profile, and your personal play history |
+| **Auto-generated Insights** | Rule-based engin| **Auto-g beha| **Auto-generated Insights** | Rule-based engin| **Auto-g beha| **Auto-generated Insights** | Rule-based engin| **Auto-g beha| **Auto-generated Insights** | Rule-based engin| lates u| **Auto-generated Insights** | Rule-based engin| Spoti| **Auto-generated Insights** | Rule-based engin| **Auto-g beha| **Auto-generated Insights** | Refresh|  | | **Auto-genetok| **Auto-generated Insights** | Rule-based en|
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+ **Auto-generated Insights** | Rule-based engin| **Auto-g beha| **Auto-generated Insights** dev  *rve **Auto-gex T **Auto-generated Inl stat **Auto- l **Auto-generated Insights** | Rule-based engin| **Auto-g beha| **Auto-generated Insights** dev  *rve ** a **Auto-generated Insights** | Rule-based engin| **Auto-g beha| **Auto-generated Insightslyti **Auto-generated Insights** | Rule-based engin| **Auto-g beha| **Auto-generated k Start
+
+### Prerequisites
+
+- Node.js 18+
+- A [Spotify Developer](https://developer.spotify.com/dashboard) app with `http://localhost:5173/callback` as a Redirect URI
+
+### Setup
+
+```bash
+git clone https://github.com/your-username/stream-pulse.git
+cd stream-pulse
+npm install
+cp .env.example .env
+# Edit .env — add your VITE_SPOTIFY_CLIENT_ID
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Open [http://localhost:5173](http://localhost:5173) and click **Connect with Spotify**, or click **View Demo** to explore without an account.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Running Tests
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+```bash
+npm test            # single run
+npm run test:watch  # watch monpm run test:watch  # watch monpm run test:watch  # watch monpm run test:watch  # watch monpm run test:watch  # watch monpm run test:watch  # watch monpm run test:watch  # watch monpm run test:watch  # watch monpm run test:watch  # watch monpm run test:watch  # watch monpm run test:watch  # watch monpm run test:watch  # watch monpm run test:watch  # watch monpm run test:watch  # watch monpm run test:watch  # watch monpm run test:wat's Client ID |
+| `VITE| `VITE| `VRI`| `VITE| `VITE| `VRI`| `VITE| `VITE| `VRI`| `VITE| `VITE| `VRI`| `VITE| `VITE| `VRI`| `VITE| `VITE| `VRI`| `VITE|e Spotify Web API in dev| `VITnt| `VITE| `VITE| `VRI`| `VITE| `VITE| `VRI`| `VITE| `VITalls back to genre-ba| ` mood est| `VITE| `VITE| `y-played is capped at 50 items per request — mitig| `VITy `loc| Storage` persistence
+
+---
+
+## Privacy
+
+All data stays in the browser. No backend, no server-side storage. OAuth tokens are kept in `sessionStorage` and cleared on logout.
+
+---
+
+## License
+
+MIT

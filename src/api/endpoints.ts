@@ -1,6 +1,7 @@
 import client from './client';
 import type {
   AudioFeatures,
+  NowPlayingResponse,
   RecentlyPlayedItem,
   RecentlyPlayedResponse,
   SpotifyArtist,
@@ -122,3 +123,22 @@ export const fetchArtistTopTracks = (
       params: market ? { market } : undefined,
     })
     .then((r) => r.data.tracks);
+
+// ─── Now Playing ──────────────────────────────────────────────────────────────
+
+/**
+ * Returns the currently-playing track, or null when nothing is playing
+ * (204 No Content) or the endpoint returns a non-track item.
+ */
+export const fetchNowPlaying = async (): Promise<NowPlayingResponse | null> => {
+  try {
+    const res = await client.get<NowPlayingResponse>(
+      '/me/player/currently-playing'
+    );
+    // 204 means nothing is playing
+    if (res.status === 204 || !res.data) return null;
+    return res.data;
+  } catch {
+    return null;
+  }
+};

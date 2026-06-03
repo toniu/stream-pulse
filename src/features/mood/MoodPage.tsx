@@ -1,3 +1,4 @@
+import { Zap, Moon, AlertTriangle } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Card } from '@/components/common/Card';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
@@ -46,6 +47,9 @@ export function MoodPage() {
   const highEnergy = sorted.slice(0, 5);
   const highEnergyIds = new Set(highEnergy.map((t) => t.id));
 
+  // True only when at least one top track has real Spotify audio features
+  const hasRealAudioFeatures = topTracks.some((t) => t.audioFeatures !== null);
+
   const mellow = [...topTracks]
     .sort((a, b) => trackEnergyScore(a) - trackEnergyScore(b))
     .filter((t) => !highEnergyIds.has(t.id))
@@ -83,6 +87,17 @@ export function MoodPage() {
                   </p>
                 </div>
               </Card>
+            )}
+
+            {/* Estimated data notice */}
+            {!hasRealAudioFeatures && moodSnapshot && (
+              <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+                <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-400" />
+                <p className="text-xs text-amber-300/80 leading-relaxed">
+                  <span className="font-semibold text-amber-300">Estimated data</span> — Spotify's audio features API isn't available for this app yet.
+                  Mood scores and energy rankings are inferred from genre tags and track popularity, not real audio analysis.
+                </p>
+              </div>
             )}
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -131,7 +146,7 @@ export function MoodPage() {
             {/* High energy vs mellow */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <Card>
-                <h3 className="mb-3 text-sm font-medium text-gray-300">⚡ High Energy Tracks</h3>
+                <h3 className="mb-3 flex items-center gap-1.5 text-sm font-medium text-gray-300"><Zap size={14} className="text-yellow-400 shrink-0" /> High Energy Tracks</h3>
                 <ol className="space-y-2">
                   {highEnergy.map((t, i) => (
                     <li key={t.id} className="flex items-center gap-2">
@@ -151,7 +166,7 @@ export function MoodPage() {
                 </ol>
               </Card>
               <Card>
-                <h3 className="mb-3 text-sm font-medium text-gray-300">🌙 Mellow Tracks</h3>
+                <h3 className="mb-3 flex items-center gap-1.5 text-sm font-medium text-gray-300"><Moon size={14} className="text-blue-400 shrink-0" /> Mellow Tracks</h3>
                 <ol className="space-y-2">
                   {mellow.map((t, i) => (
                     <li key={t.id} className="flex items-center gap-2">

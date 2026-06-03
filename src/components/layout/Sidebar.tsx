@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   BarChart2,
@@ -12,6 +13,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { toggleSidebar, setMobileSidebarOpen } from '@/store/slices/uiSlice';
 import logoTransparent from '@/assets/stream-pulse-logo-transparent.png';
+import { NowPlaying } from './NowPlaying';
 
 const navItems = [
   { to: '/', label: 'Overview', icon: Home },
@@ -27,6 +29,16 @@ export function Sidebar() {
   const mobileOpen = useAppSelector((s) => s.ui.mobileSidebarOpen);
 
   const closeMobile = () => dispatch(setMobileSidebarOpen(false));
+
+  // Auto-close the mobile sidebar when the viewport switches to non-mobile (≥768px)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const handler = (e: MediaQueryListEvent) => {
+      if (e.matches) dispatch(setMobileSidebarOpen(false));
+    };
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [dispatch]);
 
   const sidebarContent = (isMobile: boolean) => (
     <aside
@@ -49,7 +61,7 @@ export function Sidebar() {
             <img
               src={logoTransparent}
               alt="StreamPulse"
-              className="h-9 w-auto object-contain"
+              className="h-11 w-auto object-contain"
               draggable={false}
             />
             {/* Close button — mobile only */}
@@ -88,6 +100,9 @@ export function Sidebar() {
         ))}
       </nav>
 
+      {/* Now Playing — desktop only */}
+      {!isMobile && <NowPlaying collapsed={collapsed} />}
+
       {/* Collapse toggle — desktop only */}
       {!isMobile && (
         <button
@@ -109,20 +124,28 @@ export function Sidebar() {
       </div>
 
       {/* Mobile drawer overlay */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={closeMobile}
-            aria-hidden="true"
-          />
-          {/* Drawer */}
-          <div className="relative flex h-full">
-            {sidebarContent(true)}
-          </div>
+      <div
+        className={`fixed inset-0 z-50 flex md:hidden transition-all duration-300 ${
+          mobileOpen ? 'pointer-events-auto' : 'pointer-events-none'
+        }`}
+      >
+        {/* Backdrop */}
+        <div
+          className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+            mobileOpen ? 'opacity-100' : 'opacity-0'
+          }`}
+          onClick={closeMobile}
+          aria-hidden="true"
+        />
+        {/* Drawer */}
+        <div
+          className={`relative flex h-full transition-transform duration-300 ease-in-out ${
+            mobileOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          {sidebarContent(true)}
         </div>
-      )}
+      </div>
     </>
   );
 }

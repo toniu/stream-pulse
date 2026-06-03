@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 import { Card } from './Card';
 
 interface MetricCardProps {
@@ -31,9 +32,10 @@ export function MetricCard({
           )}
           {trend && (
             <p
-              className={`mt-1 text-xs font-medium ${trend.positive ? 'text-green-400' : 'text-red-400'}`}
+              className={`mt-1 flex items-center gap-1 text-xs font-medium ${trend.positive ? 'text-green-400' : 'text-red-400'}`}
             >
-              {trend.positive ? '▲' : '▼'} {Math.abs(trend.value)}%
+              {trend.positive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+              {Math.abs(trend.value)}%
             </p>
           )}
         </div>

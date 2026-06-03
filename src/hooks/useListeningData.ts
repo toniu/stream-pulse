@@ -26,8 +26,18 @@ import {
   buildMoodFromPopularity,
   buildMoodSnapshot,
 } from '@/utils/analytics';
+import { mergeAndPersistPlays, getStoredPlays } from '@/utils/playHistory';
 import { rangeStartMs } from '@/types/spotify';
 import type { AudioFeatures, TimeRange, TrackWithFeatures } from '@/types';
+import {
+  mockTopTracks,
+  mockTopArtists,
+  mockRecentTracks,
+  mockListeningStats,
+  mockMoodSnapshot,
+  mockHourlyDistribution,
+  mockDailyDistribution,
+} from '@/data/mockData';
 
 // Module-level timestamp so all hook instances share the same cooldown
 let lastLoadAt = 0;
@@ -48,8 +58,21 @@ export function useListeningData() {
     error,
   } = useAppSelector((s) => s.listening);
 
+  const demoMode = useAppSelector((s) => s.ui.demoMode);
+
   const loadAll = useCallback(
     async (range: TimeRange = timeRange, force = false) => {
+      // In demo mode, populate store with mock data and skip all API calls
+      if (demoMode) {
+        dispatch(setTopTracks(mockTopTracks));
+        dispatch(setTopArtists(mockTopArtists));
+        dispatch(setRecentTracks(mockRecentTracks));
+        dispatch(setListeningStats(mockListeningStats));
+        dispatch(setMoodSnapshot(mockMoodSnapshot));
+        dispatch(setHourlyDistribution(mockHourlyDistribution));
+        dispatch(setDailyDistribution(mockDailyDistribution));
+        return;
+      }
       // Read live store state — guards against the race where multiple
       // components mount simultaneously and all see isLoading=false from
       // their stale closures before the first dispatch fires.
@@ -61,11 +84,17 @@ export function useListeningData() {
       dispatch(setLoading(true));
       dispatch(setError(null));
       try {
-        const [tracksPage, artistsPage, recent] = await Promise.all([
+        const [tracksPage, artistsPage, freshRecent] = await Promise.all([
           fetchTopTracks(range, 50),
           fetchTopArtists(range, 50),
           fetchRecentlyPlayedSince(rangeStartMs(range), 200),
         ]);
+
+        // Merge fresh plays into localStorage and read back the full history
+        // for the selected time range — this overcomes Spotify's hard cap of
+        // 50 items from the recently-played endpoint.
+        mergeAndPersistPlays(freshRecent);
+        const recent = getStoredPlays(rangeStartMs(range));
 
         // Attempt to fetch audio features — returns [] gracefully on 403 (restricted endpoint).
         const trackIds = tracksPage.items.map((t) => t.id);
@@ -107,7 +136,7 @@ export function useListeningData() {
         dispatch(setLoading(false));
       }
     },
-    [dispatch, timeRange]
+    [dispatch, timeRange, demoMode]
   );
 
   return {

@@ -26,12 +26,16 @@ export function ArtistsPage() {
 
   const [selectedArtist, setSelectedArtist] = useState<SpotifyArtist | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   const handleSelectArtist = async (artistId: string) => {
     setDetailLoading(true);
+    setDetailError(null);
     try {
       const artist = await fetchArtist(artistId);
       setSelectedArtist(artist);
+    } catch (err) {
+      setDetailError(err instanceof Error ? err.message : 'Failed to load artist details.');
     } finally {
       setDetailLoading(false);
     }
@@ -139,6 +143,17 @@ export function ArtistsPage() {
               {detailLoading ? (
                 <div className="flex h-48 items-center justify-center">
                   <LoadingSpinner />
+                </div>
+              ) : detailError ? (
+                <div className="flex h-48 flex-col items-center justify-center gap-3 rounded-xl border border-red-500/20 bg-red-500/5 text-center">
+                  <p className="text-sm font-medium text-red-400">Failed to load artist</p>
+                  <p className="text-xs text-gray-400">{detailError}</p>
+                  <button
+                    onClick={() => setDetailError(null)}
+                    className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/5"
+                  >
+                    Dismiss
+                  </button>
                 </div>
               ) : selectedArtist ? (
                 <>
@@ -265,8 +280,8 @@ export function ArtistsPage() {
                                   className="h-6 w-6 rounded-md shrink-0"
                                 />
                               ) : (
-                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/5 text-[9px] text-gray-500">
-                                  ♪
+                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/5 text-gray-500">
+                                  <Music2 size={10} />
                                 </span>
                               )}
                               <div className="min-w-0 flex-1">

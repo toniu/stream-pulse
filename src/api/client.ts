@@ -1,6 +1,7 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 import { store } from '@/store';
-import { logout } from '@/store/slices/authSlice';
+import { logout, setTokens } from '@/store/slices/authSlice';
+import { refreshAccessToken } from './auth';
 
 const BASE_URL = 'https://api.spotify.com/v1';
 
@@ -23,15 +24,44 @@ spotifyClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 + 429
+// Handle 401 (with silent refresh) + 429
 spotifyClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (!axios.isAxiosError(error)) return Promise.reject(error);
 
     if (error.response?.status === 401) {
-      store.dispatch(logout());
-      return Promise.reject(error);
+      const config = error.config as RetryableConfig | undefined;
+      // Attempt a single silent token refresh before giving up
+      if (!config || config._retried) {
+        store.dispatch(logout());
+        return Promise.reject(error);
+      }
+      config._retried = true;
+
+      const refreshToken = store.getState().auth.refreshToken;
+      if (!refreshToken) {
+        store.dispatch(logout());
+        return Promise.reject(error);
+      }
+
+      try {
+        const tokens = await refreshAccessToken(refreshToken);
+        const expiresAt = Date.now() + tokens.expires_in * 1_000;
+        store.dispatch(
+          setTokens({
+            accessToken: tokens.access_token,
+            expiresAt,
+            refreshToken: tokens.refresh_token,
+          })
+        );
+        // Retry the original request with the new token
+        config.headers.Authorization = `Bearer ${tokens.access_token}`;
+        return spotifyClient(config);
+      } catch {
+        store.dispatch(logout());
+        return Promise.reject(error);
+      }
     }
 
     if (error.response?.status === 429) {

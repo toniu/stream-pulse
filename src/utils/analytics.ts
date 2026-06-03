@@ -285,8 +285,11 @@ export function buildMoodFromPopularity(tracks: TrackWithFeatures[]): MoodSnapsh
   const pops = tracks
     .map((t) => t.popularity)
     .filter((p): p is number => typeof p === 'number' && Number.isFinite(p) && p >= 0);
-  if (pops.length === 0) return null;
-  const avgPop = pops.reduce((s, p) => s + p, 0) / pops.length;
+  // If Spotify didn't return popularity values (niche artists / restricted tier),
+  // use a neutral 50 so mood data still renders rather than showing "No data".
+  const safePops = pops.length > 0 ? pops : tracks.length > 0 ? [50] : [];
+  if (safePops.length === 0) return null;
+  const avgPop = safePops.reduce((s, p) => s + p, 0) / safePops.length;
   const n = avgPop / 100; // 0–1 normalised
 
   const energy       = 0.50 + n * 0.25; // 0.50–0.75

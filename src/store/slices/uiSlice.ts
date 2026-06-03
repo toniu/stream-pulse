@@ -4,12 +4,14 @@ interface UIState {
   sidebarCollapsed: boolean;
   mobileSidebarOpen: boolean;
   activeArtistId: string | null;
+  demoMode: boolean;
 }
 
 const initialState: UIState = {
   sidebarCollapsed: false,
   mobileSidebarOpen: false,
   activeArtistId: null,
+  demoMode: false,
 };
 
 const uiSlice = createSlice({
@@ -31,9 +33,12 @@ const uiSlice = createSlice({
     setActiveArtistId(state, action: PayloadAction<string | null>) {
       state.activeArtistId = action.payload;
     },
+    setDemoMode(state, action: PayloadAction<boolean>) {
+      state.demoMode = action.payload;
+    },
   },
 });
 
-export const { toggleSidebar, setSidebarCollapsed, toggleMobileSidebar, setMobileSidebarOpen, setActiveArtistId } =
+export const { toggleSidebar, setSidebarCollapsed, toggleMobileSidebar, setMobileSidebarOpen, setActiveArtistId, setDemoMode } =
   uiSlice.actions;
 export default uiSlice.reducer;

@@ -82,6 +82,15 @@ export interface RecentlyPlayedResponse {
   limit: number;
 }
 
+// ─── Now Playing ─────────────────────────────────────────────────────────────
+
+export interface NowPlayingResponse {
+  is_playing: boolean;
+  progress_ms: number | null;
+  item: SpotifyTrack | null;
+  currently_playing_type: 'track' | 'episode' | 'ad' | 'unknown';
+}
+
 export interface AudioFeatures {
   id: string;
   danceability: number;   // 0–1

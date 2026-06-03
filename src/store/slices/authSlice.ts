@@ -1,5 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { SpotifyUser } from '@/types';
+import { clearPlayHistory } from '@/utils/playHistory';
 
 interface AuthState {
   accessToken: string | null;
@@ -25,12 +26,16 @@ const authSlice = createSlice({
   reducers: {
     setTokens(
       state,
-      action: PayloadAction<{ accessToken: string; expiresAt: number }>
+      action: PayloadAction<{ accessToken: string; expiresAt: number; refreshToken?: string }>
     ) {
       state.accessToken = action.payload.accessToken;
       state.expiresAt = action.payload.expiresAt;
       sessionStorage.setItem('sp_access_token', action.payload.accessToken);
       sessionStorage.setItem('sp_expires_at', String(action.payload.expiresAt));
+      if (action.payload.refreshToken) {
+        state.refreshToken = action.payload.refreshToken;
+        sessionStorage.setItem('sp_refresh_token', action.payload.refreshToken);
+      }
     },
     setUser(state, action: PayloadAction<SpotifyUser>) {
       state.user = action.payload;
@@ -50,6 +55,7 @@ const authSlice = createSlice({
       sessionStorage.removeItem('sp_access_token');
       sessionStorage.removeItem('sp_refresh_token');
       sessionStorage.removeItem('sp_expires_at');
+      clearPlayHistory();
     },
   },
 });

@@ -84,10 +84,44 @@ export async function exchangeCodeForToken(
   }
 
   sessionStorage.removeItem('sp_code_verifier');
-  return response.json() as Promise<TokenResponse>;
+  const data = await (response.json() as Promise<TokenResponse>);
+  // Persist refresh token so the client interceptor can silently renew
+  if (data.refresh_token) {
+    sessionStorage.setItem('sp_refresh_token', data.refresh_token);
+  }
+  return data;
 }
 
 export function isTokenExpired(expiresAt: number): boolean {
   // 60-second buffer
   return Date.now() > expiresAt - 60_000;
+}
+
+/**
+ * Silently exchanges a refresh token for a new access token.
+ * Returns the new TokenResponse, or throws if the refresh token is missing/invalid.
+ */
+export async function refreshAccessToken(refreshToken: string): Promise<TokenResponse> {
+  const body = new URLSearchParams({
+    client_id: CLIENT_ID,
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken,
+  });
+
+  const response = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString(),
+  });
+
+  if (!response.ok) {
+    throw new Error('Token refresh failed');
+  }
+
+  const data = await (response.json() as Promise<TokenResponse>);
+  // Spotify may rotate the refresh token — persist the new one if provided
+  if (data.refresh_token) {
+    sessionStorage.setItem('sp_refresh_token', data.refresh_token);
+  }
+  return data;
 }

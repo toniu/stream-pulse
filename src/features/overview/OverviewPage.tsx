@@ -65,7 +65,7 @@ export function OverviewPage() {
               />
               <MetricCard
                 label="Genres Explored"
-                value={listeningStats ? (listeningStats.uniqueGenres > 0 ? listeningStats.uniqueGenres : '—') : '—'}
+                value={listeningStats ? listeningStats.uniqueGenres : '—'}
                 icon={Headphones}
                 iconColor="text-amber-400"
               />
@@ -133,8 +133,8 @@ export function OverviewPage() {
                           {track.artists.map((a) => a.name).join(', ')}
                         </p>
                       </div>
-                      <span className="shrink-0 text-xs text-gray-500">
-                        {track.popularity}
+                      <span className="shrink-0 text-xs text-gray-500" title="Popularity score out of 100">
+                        {track.popularity != null ? `${track.popularity}/100` : '—'}
                       </span>
                     </li>
                   ))}

@@ -5,9 +5,11 @@ import type React from 'react';
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { accessToken, expiresAt } = useAppSelector((s) => s.auth);
+  const demoMode = useAppSelector((s) => s.ui.demoMode);
 
   const isAuthenticated =
-    !!accessToken && (expiresAt === null || !isTokenExpired(expiresAt));
+    demoMode ||
+    (!!accessToken && (expiresAt === null || !isTokenExpired(expiresAt)));
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
